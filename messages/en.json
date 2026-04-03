@@ -1,0 +1,31 @@
+{
+  "common": {
+    "brand": "TEKDOM",
+    "search": "Search",
+    "cart": "Cart",
+    "menu": "Menu",
+    "close": "Close",
+    "loading": "Loading...",
+    "viewAll": "View All",
+    "addToCart": "Add to Cart",
+    "buyNow": "Buy Now",
+    "outOfStock": "Out of Stock",
+    "inStock": "In Stock",
+    "currency": "USD"
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "categories": "Categories",
+    "deals": "Deals",
+    "about": "About",
+    "contact": "Contact"
+  },
+  "product": {
+    "sku": "SKU",
+    "warranty": "Warranty",
+    "serialNumber": "Serial Number",
+    "specifications": "Specifications",
+    "relatedProducts": "Related Products"
+  }
+}

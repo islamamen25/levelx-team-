@@ -1,0 +1,31 @@
+{
+  "common": {
+    "brand": "تيك دوم",
+    "search": "بحث",
+    "cart": "السلة",
+    "menu": "القائمة",
+    "close": "إغلاق",
+    "loading": "جاري التحميل...",
+    "viewAll": "عرض الكل",
+    "addToCart": "أضف إلى السلة",
+    "buyNow": "اشتر الآن",
+    "outOfStock": "نفد المخزون",
+    "inStock": "متوفر",
+    "currency": "USD"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "products": "المنتجات",
+    "categories": "الفئات",
+    "deals": "العروض",
+    "about": "من نحن",
+    "contact": "تواصل معنا"
+  },
+  "product": {
+    "sku": "رمز المنتج",
+    "warranty": "الضمان",
+    "serialNumber": "الرقم التسلسلي",
+    "specifications": "المواصفات",
+    "relatedProducts": "منتجات ذات صلة"
+  }
+}
