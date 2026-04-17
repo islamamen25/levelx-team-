@@ -1,31 +1,198 @@
 {
   "common": {
-    "brand": "تيك دوم",
+    "brand": "ليفيل إكس",
+    "tagline": "إلكترونيات مجدّدة بجودة فائقة.",
     "search": "بحث",
     "cart": "السلة",
     "menu": "القائمة",
     "close": "إغلاق",
-    "loading": "جاري التحميل...",
+    "loading": "جاري التحميل",
     "viewAll": "عرض الكل",
     "addToCart": "أضف إلى السلة",
     "buyNow": "اشتر الآن",
-    "outOfStock": "نفد المخزون",
+    "outOfStock": "غير متوفر",
     "inStock": "متوفر",
-    "currency": "USD"
+    "currency": "GBP",
+    "learnMore": "اعرف المزيد",
+    "backToTop": "العودة للأعلى",
+    "from": "ابتداءً من"
   },
   "nav": {
-    "home": "الرئيسية",
-    "products": "المنتجات",
+    "products": "تسوّق الكل",
     "categories": "الفئات",
     "deals": "العروض",
     "about": "من نحن",
-    "contact": "تواصل معنا"
+    "language": "English",
+    "searchPlaceholder": "ابحث عن سامسونج، ماك بوك، PS5...",
+    "tradeIn": "استبدال الجهاز",
+    "help": "هل تحتاج مساعدة؟"
+  },
+  "hero": {
+    "eyebrow": "تقنيات مجدّدة ومعتمدة",
+    "headline": "تقنيات فاخرة.\nبخصم يصل إلى 70%.",
+    "sub": "هواتف ذكية وحواسيب وأكثر، مفحوصة ومعتمدة من خبراء. مدعومة بضمان سنة كاملة و30 يوماً للإرجاع.",
+    "cta": "تسوّق العروض",
+    "ctaSecondary": "كيف يعمل",
+    "badge": "حتى −70%"
+  },
+  "home": {
+    "categoriesTitle": "تسوّق حسب الفئة",
+    "categoriesSub": "ابحث عن الجهاز المناسب لك.",
+    "categories": {
+      "smartphones": "الهواتف الذكية",
+      "laptops": "أجهزة اللاب توب",
+      "tablets": "الأجهزة اللوحية",
+      "consoles": "أجهزة الألعاب",
+      "smartwatches": "الساعات الذكية",
+      "headphones": "سماعات الرأس"
+    },
+    "trustTitle": "وعد ليفيل إكس",
+    "trust": {
+      "warranty": "ضمان سنة كاملة",
+      "warrantySub": "مضمّن مع كل جهاز",
+      "returns": "إرجاع خلال 30 يوماً",
+      "returnsSub": "استرداد بلا تعقيدات",
+      "delivery": "شحن مجاني",
+      "deliverySub": "على جميع الطلبات",
+      "verified": "مفحوص من خبراء",
+      "verifiedSub": "مختبر من مهندسين معتمدين"
+    }
+  },
+  "featured": {
+    "label": "اختيارات الفريق",
+    "title": "أفضل عروض هذا الأسبوع",
+    "sub": "توفيرات مختارة يدوياً. تتجدّد كل أسبوع."
   },
   "product": {
     "sku": "رمز المنتج",
     "warranty": "الضمان",
     "serialNumber": "الرقم التسلسلي",
     "specifications": "المواصفات",
-    "relatedProducts": "منتجات ذات صلة"
+    "relatedProducts": "قد يعجبك أيضاً",
+    "reviews": "تقييم",
+    "condition": "اختر الحالة",
+    "conditionHelp": "جميع الحالات تشمل ضمان سنة كاملة.",
+    "savings": "توفّر",
+    "color": "اللون",
+    "specs": "التخزين",
+    "quantity": "الكمية",
+    "shipping": "شحن قياسي مجاني",
+    "trust": {
+      "warranty": "ضمان سنة كاملة مضمّن",
+      "warrantySub": "إصلاح أو استبدال أو استرداد",
+      "returns": "إرجاع مجاني خلال 30 يوماً",
+      "returnsSub": "غيّر رأيك بكل بساطة",
+      "delivery": "شحن قياسي مجاني",
+      "deliverySub": "يُشحن خلال 1–2 يوم عمل"
+    },
+    "smartAddons": "إضافات ذكية",
+    "smartAddonsSub": "يُشترى معاً عادةً"
+  },
+  "condition": {
+    "fair": "مقبولة",
+    "fairSub": "آثار استخدام ظاهرة",
+    "good": "جيّدة",
+    "goodSub": "آثار استخدام خفيفة",
+    "excellent": "ممتازة",
+    "excellentSub": "آثار استخدام بسيطة",
+    "premium": "فاخرة",
+    "premiumSub": "كالجديدة"
+  },
+  "plp": {
+    "title": "تقنيات مجدّدة",
+    "subtitle": "بخصم يصل إلى 70% مقارنةً بالجديد. كل جهاز مفحوص مع ضمان سنة كاملة.",
+    "resultsCount": "{count} منتج",
+    "filters": "فلاتر",
+    "clearFilters": "مسح الكل",
+    "filterCondition": "الحالة",
+    "filterBrand": "العلامة التجارية",
+    "filterPrice": "نطاق السعر",
+    "filterPriceMin": "الأدنى",
+    "filterPriceMax": "الأعلى",
+    "noResults": "لا توجد منتجات تطابق الفلاتر.",
+    "sort": "ترتيب",
+    "sortRelevance": "الأكثر صلة",
+    "sortPriceAsc": "السعر: من الأقل",
+    "sortPriceDesc": "السعر: من الأعلى"
+  },
+  "checkout": {
+    "title": "إتمام الطلب",
+    "guestHeading": "المتابعة كضيف",
+    "guestSub": "لا حاجة لحساب. يستغرق أقل من دقيقة.",
+    "haveAccount": "لديك حساب؟",
+    "signIn": "تسجيل الدخول",
+    "contact": "بيانات التواصل",
+    "shipping": "عنوان التوصيل",
+    "payment": "الدفع",
+    "firstName": "الاسم الأول",
+    "lastName": "اسم العائلة",
+    "email": "البريد الإلكتروني",
+    "phone": "رقم الهاتف (اختياري)",
+    "address": "العنوان",
+    "city": "المدينة",
+    "country": "الدولة",
+    "zip": "الرمز البريدي",
+    "cardNumber": "رقم البطاقة",
+    "expiry": "شهر / سنة",
+    "cvc": "CVC",
+    "nameOnCard": "الاسم على البطاقة",
+    "orderSummary": "طلبك",
+    "subtotal": "المجموع الفرعي",
+    "shippingFee": "التوصيل",
+    "shippingFree": "مجاني",
+    "tax": "ضريبة القيمة المضافة (20%)",
+    "total": "الإجمالي",
+    "placeOrder": "تأكيد الطلب",
+    "secure": "SSL آمن · مشفّر · حماية المشتري",
+    "items": "{count} منتجات",
+    "emptyCart": "سلة التسوق فارغة",
+    "continueShopping": "متابعة التسوق"
+  },
+  "dashboard": {
+    "title": "لوحة المؤشرات التنفيذية",
+    "gmv": "إجمالي قيمة البضاعة",
+    "aov": "متوسط قيمة الطلب",
+    "returnRate": "نسبة الإرجاع",
+    "dailyOrders": "الطلبات اليومية",
+    "vs_last_period": "مقارنة بالفترة السابقة",
+    "revenue": "الإيرادات",
+    "target": "الهدف",
+    "tabs": {
+      "7d": "٧ أيام",
+      "30d": "٣٠ يوم",
+      "90d": "٩٠ يوم",
+      "12m": "١٢ شهر"
+    },
+    "charts": {
+      "gmv": "اتجاه الإيرادات",
+      "aov": "متوسط قيمة الطلب",
+      "returns": "نسبة الإرجاع حسب المنتج",
+      "sales": "المبيعات اليومية"
+    }
+  },
+  "chat": {
+    "title": "مساعد ليفيل إكس",
+    "placeholder": "اسأل عن المنتجات...",
+    "send": "إرسال",
+    "thinking": "جاري التفكير...",
+    "welcome": "مرحباً! يمكنني مساعدتك في إيجاد الجهاز المجدّد المثالي. ماذا تبحث عنه؟"
+  },
+  "footer": {
+    "tagline": "إلكترونيات مجدّدة يمكنك الوثوق بها.",
+    "shop": "التسوق",
+    "company": "الشركة",
+    "support": "الدعم",
+    "legal": "القانوني",
+    "rights": "جميع الحقوق محفوظة.",
+    "privacy": "الخصوصية",
+    "terms": "الشروط",
+    "contact": "تواصل معنا",
+    "about": "عن ليفيل إكس",
+    "careers": "وظائف",
+    "blog": "المدونة",
+    "faq": "الأسئلة الشائعة",
+    "warranty": "الضمان",
+    "returns": "الإرجاع",
+    "sitemap": "خريطة الموقع"
   }
 }

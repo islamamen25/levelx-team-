@@ -1,7 +1,4 @@
-import { Geist } from "next/font/google";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
+import React from "react";
 
 // Minimal root layout — locale and providers are handled in app/[locale]/layout.tsx
 export default function RootLayout({
