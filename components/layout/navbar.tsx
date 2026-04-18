@@ -8,6 +8,7 @@ import { useScrolled } from "@/hooks/use-scrolled";
 import { Search, ShoppingBag, User, Menu, X, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { CategoryBar } from "@/components/layout/category-bar";
+import { useCartStore } from "@/lib/cart-store";
 
 interface NavbarProps {
   locale: string;
@@ -26,7 +27,7 @@ export function Navbar({ locale }: NavbarProps) {
   const scrolled = useScrolled(8);
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [cartCount] = useState(0);
+  const cartCount = useCartStore((s) => s.totalItems());
 
   const otherLocale = locale === "en" ? "ar" : "en";
   const basePath = pathname.replace(/^\/(en|ar)/, "") || "/";
@@ -103,7 +104,7 @@ export function Navbar({ locale }: NavbarProps) {
 
             {/* Cart */}
             <Link
-              href="/cart"
+              href="/checkout"
               locale={locale as "en" | "ar"}
               aria-label={tc("cart")}
               className="relative flex h-9 w-9 items-center justify-center rounded-full text-ceramic transition-colors hover:bg-[var(--color-graphite)]"

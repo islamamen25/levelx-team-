@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
-import { Check, ShieldCheck, RotateCcw, Truck, Star, Minus, Plus } from "lucide-react";
+import { Link, useRouter } from "@/i18n/navigation";
+import { Check, ShieldCheck, RotateCcw, Truck, Star, Minus, Plus, ShoppingBag, CheckCircle2 } from "lucide-react";
 import type { MockProduct, ConditionTier } from "@/lib/mock-products";
+import { useCartStore } from "@/lib/cart-store";
 
 interface ProductPanelProps {
   product: MockProduct;
@@ -27,6 +28,9 @@ export function ProductPanel({ product, locale }: ProductPanelProps) {
   const [activeVariantId, setActiveVariantId] = useState(product.variants[0].id);
   const [activeCondition, setActiveCondition] = useState<ConditionTier>("Excellent");
   const [qty, setQty] = useState(1);
+  const [added, setAdded] = useState(false);
+  const addItem = useCartStore((s) => s.addItem);
+  const router = useRouter();
 
   const activeVariant = product.variants.find((v) => v.id === activeVariantId) ?? product.variants[0];
   const conditionOption = product.condition_options.find((c) => c.tier === activeCondition);
@@ -34,6 +38,36 @@ export function ProductPanel({ product, locale }: ProductPanelProps) {
   const originalPrice = activeVariant.original_price;
   const savings = originalPrice - currentPrice;
   const discountPct = Math.round((savings / originalPrice) * 100);
+
+  const cartKey = `${activeVariant.id}-${activeCondition}`;
+
+  function buildCartItem() {
+    return {
+      key: cartKey,
+      productId: product.id,
+      productName: product.name,
+      brand: product.brand,
+      slug: product.slug,
+      variantId: activeVariant.id,
+      specs: activeVariant.specs,
+      colour: activeVariant.colour,
+      condition: activeCondition,
+      price: currentPrice,
+      gradient: product.images[0]?.gradient ?? "linear-gradient(135deg,#e8e8ed,#d1d1d6)",
+      qty,
+    };
+  }
+
+  function handleAddToCart() {
+    addItem(buildCartItem());
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  }
+
+  function handleBuyNow() {
+    addItem(buildCartItem());
+    router.push({ pathname: "/checkout" }, { locale: locale as "en" | "ar" });
+  }
 
   // Group variants by specs for storage selector
   const specGroups = [...new Set(product.variants.map((v) => v.specs))];
@@ -228,12 +262,29 @@ export function ProductPanel({ product, locale }: ProductPanelProps) {
       <div className="flex flex-col gap-3 pt-1">
         <button
           type="button"
-          className="w-full rounded-full bg-[var(--color-mint)] py-4 text-sm font-bold text-white transition-colors hover:bg-[var(--color-mint-hover)] active:scale-[0.98]"
+          onClick={handleAddToCart}
+          className={[
+            "flex w-full items-center justify-center gap-2 rounded-full py-4 text-sm font-bold text-white transition-all active:scale-[0.98]",
+            added
+              ? "bg-emerald-500 hover:bg-emerald-600"
+              : "bg-[var(--color-mint)] hover:bg-[var(--color-mint-hover)]",
+          ].join(" ")}
         >
-          {tc("addToCart")}
+          {added ? (
+            <>
+              <CheckCircle2 className="h-4 w-4" strokeWidth={2.5} />
+              Added!
+            </>
+          ) : (
+            <>
+              <ShoppingBag className="h-4 w-4" strokeWidth={2} />
+              {tc("addToCart")}
+            </>
+          )}
         </button>
         <button
           type="button"
+          onClick={handleBuyNow}
           className="w-full rounded-full border-2 border-ceramic py-3.5 text-sm font-bold text-ceramic transition-colors hover:bg-[var(--color-graphite)]"
         >
           {tc("buyNow")}

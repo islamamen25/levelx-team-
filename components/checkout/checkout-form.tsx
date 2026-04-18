@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
-import { Lock, ShieldCheck, CreditCard, CheckCircle2 } from "lucide-react";
+import { Link, useRouter } from "@/i18n/navigation";
+import { Lock, ShieldCheck, CreditCard, CheckCircle2, ShoppingBag, Minus, Plus, Trash2 } from "lucide-react";
+import { useCartStore } from "@/lib/cart-store";
 
 interface CheckoutFormProps {
   locale: string;
@@ -13,11 +14,6 @@ function formatGBP(n: number) {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(n);
 }
 
-// Static mock cart for prototype
-const MOCK_ITEMS = [
-  { id: "1", name: "Apple iPhone 15", brand: "Apple", condition: "Excellent", storage: "128GB", colour: "Black Titanium", qty: 1, price: 589, gradient: "linear-gradient(135deg, #e8e8ed 0%, #d1d1d6 100%)" },
-];
-
 const inputClass =
   "w-full rounded-xl border border-[var(--color-iron)] bg-white px-4 py-3 text-sm text-ceramic placeholder:text-slate focus:border-[var(--color-mint)] focus:outline-none focus:ring-2 focus:ring-[var(--color-mint)]/15 transition-colors";
 
@@ -26,11 +22,55 @@ const labelClass = "block text-xs font-semibold uppercase tracking-wider text-sl
 export function CheckoutForm({ locale }: CheckoutFormProps) {
   const t = useTranslations("checkout");
   const [cardFocused, setCardFocused] = useState(false);
+  const [placed, setPlaced] = useState(false);
+  const router = useRouter();
 
-  const subtotal = MOCK_ITEMS.reduce((s, i) => s + i.price * i.qty, 0);
-  const vat = Math.round(subtotal * 0.2);
-  const total = subtotal + vat;
+  const items      = useCartStore((s) => s.items);
+  const updateQty  = useCartStore((s) => s.updateQty);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const clearCart  = useCartStore((s) => s.clearCart);
 
+  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const vat      = Math.round(subtotal * 0.2);
+  const total    = subtotal + vat;
+
+  // ── Empty cart screen ──────────────────────────────
+  if (items.length === 0 && !placed) {
+    return (
+      <div className="container-px mx-auto flex flex-col items-center justify-center py-24 text-center">
+        <ShoppingBag className="h-16 w-16 text-[var(--color-iron)]" strokeWidth={1.5} />
+        <h1 className="mt-6 text-2xl font-extrabold text-ceramic">{t("emptyCart")}</h1>
+        <p className="mt-2 text-sm text-slate">Add items from the store to continue</p>
+        <Link
+          href="/products"
+          locale={locale as "en" | "ar"}
+          className="mt-6 rounded-full bg-[var(--color-mint)] px-6 py-3 text-sm font-bold text-white transition hover:bg-[var(--color-mint-hover)]"
+        >
+          {t("continueShopping")}
+        </Link>
+      </div>
+    );
+  }
+
+  // ── Order placed screen ────────────────────────────
+  if (placed) {
+    return (
+      <div className="container-px mx-auto flex flex-col items-center justify-center py-24 text-center">
+        <CheckCircle2 className="h-16 w-16 text-emerald-500" strokeWidth={1.5} />
+        <h1 className="mt-6 text-2xl font-extrabold text-ceramic">Order placed!</h1>
+        <p className="mt-2 text-sm text-slate">We&#39;ll send you a confirmation email shortly.</p>
+        <Link
+          href="/"
+          locale={locale as "en" | "ar"}
+          className="mt-6 rounded-full bg-[var(--color-mint)] px-6 py-3 text-sm font-bold text-white transition hover:bg-[var(--color-mint-hover)]"
+        >
+          Back to store
+        </Link>
+      </div>
+    );
+  }
+
+  // ── Main checkout ──────────────────────────────────
   return (
     <div className="container-px mx-auto py-8 md:py-12">
       <h1
@@ -42,15 +82,16 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
 
       {/* Grid: summary LEFT, form RIGHT */}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[380px_1fr] xl:grid-cols-[420px_1fr]">
-        {/* ── Order Summary (left on desktop) ── */}
+
+        {/* ── Order Summary ── */}
         <div className="order-2 lg:order-1 lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-2xl border border-[var(--color-iron)] bg-white p-6">
             <h2 className="mb-5 text-sm font-bold text-ceramic">{t("orderSummary")}</h2>
 
             {/* Item list */}
             <ul className="mb-5 space-y-4">
-              {MOCK_ITEMS.map((item) => (
-                <li key={item.id} className="flex items-start gap-3">
+              {items.map((item) => (
+                <li key={item.key} className="flex items-start gap-3">
                   <div
                     className="h-16 w-16 flex-shrink-0 rounded-xl border border-[var(--color-iron)]"
                     style={{ background: item.gradient }}
@@ -58,13 +99,39 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-slate">{item.brand}</p>
-                    <p className="text-sm font-semibold text-ceramic leading-snug">{item.name}</p>
+                    <p className="text-sm font-semibold text-ceramic leading-snug">{item.productName}</p>
                     <p className="mt-0.5 text-[11px] text-slate">
-                      {item.condition} · {item.storage} · {item.colour}
+                      {item.condition} · {item.specs} · {item.colour}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-slate">Qty {item.qty}</p>
+                    {/* Qty stepper */}
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => updateQty(item.key, item.qty - 1)}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-iron)] text-ceramic transition hover:border-ceramic disabled:opacity-40"
+                        disabled={item.qty <= 1}
+                      >
+                        <Minus className="h-3 w-3" strokeWidth={2.5} />
+                      </button>
+                      <span className="w-5 text-center text-xs font-semibold text-ceramic">{item.qty}</span>
+                      <button
+                        type="button"
+                        onClick={() => updateQty(item.key, item.qty + 1)}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-iron)] text-ceramic transition hover:border-ceramic"
+                      >
+                        <Plus className="h-3 w-3" strokeWidth={2.5} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeItem(item.key)}
+                        className="ms-auto flex h-6 w-6 items-center justify-center rounded-full text-slate transition hover:text-red-500"
+                        aria-label="Remove"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+                      </button>
+                    </div>
                   </div>
-                  <span className="text-sm font-bold text-ceramic">{formatGBP(item.price)}</span>
+                  <span className="text-sm font-bold text-ceramic">{formatGBP(item.price * item.qty)}</span>
                 </li>
               ))}
             </ul>
@@ -105,7 +172,7 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
           </div>
         </div>
 
-        {/* ── Checkout Form (right on desktop) ── */}
+        {/* ── Checkout Form ── */}
         <div className="order-1 lg:order-2">
           {/* Guest header card */}
           <div className="mb-6 rounded-2xl border border-[var(--color-iron)] bg-white p-5">
@@ -123,7 +190,14 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
             </p>
           </div>
 
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              clearCart();
+              setPlaced(true);
+            }}
+            className="space-y-8"
+          >
             {/* Contact */}
             <section>
               <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-ceramic">
@@ -132,19 +206,19 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className={labelClass}>{t("firstName")}</label>
-                  <input type="text" autoComplete="given-name" placeholder="Jane" className={inputClass} />
+                  <input required type="text" autoComplete="given-name" placeholder="Jane" className={inputClass} />
                 </div>
                 <div>
                   <label className={labelClass}>{t("lastName")}</label>
-                  <input type="text" autoComplete="family-name" placeholder="Smith" className={inputClass} />
+                  <input required type="text" autoComplete="family-name" placeholder="Smith" className={inputClass} />
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelClass}>{t("email")}</label>
-                  <input type="email" autoComplete="email" placeholder="jane@example.com" className={inputClass} />
+                  <input required type="email" autoComplete="email" placeholder="jane@example.com" className={inputClass} />
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelClass}>{t("phone")}</label>
-                  <input type="tel" autoComplete="tel" placeholder="+44 7700 900000" className={inputClass} />
+                  <input required type="tel" autoComplete="tel" placeholder="+44 7700 900000" className={inputClass} />
                 </div>
               </div>
             </section>
@@ -157,15 +231,15 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className={labelClass}>{t("address")}</label>
-                  <input type="text" autoComplete="street-address" placeholder="123 High Street" className={inputClass} />
+                  <input required type="text" autoComplete="street-address" placeholder="123 High Street" className={inputClass} />
                 </div>
                 <div>
                   <label className={labelClass}>{t("city")}</label>
-                  <input type="text" autoComplete="address-level2" placeholder="London" className={inputClass} />
+                  <input required type="text" autoComplete="address-level2" placeholder="London" className={inputClass} />
                 </div>
                 <div>
                   <label className={labelClass}>{t("zip")}</label>
-                  <input type="text" autoComplete="postal-code" placeholder="SW1A 1AA" className={inputClass} />
+                  <input required type="text" autoComplete="postal-code" placeholder="SW1A 1AA" className={inputClass} />
                 </div>
               </div>
             </section>
@@ -180,6 +254,7 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
                   <label className={labelClass}>{t("cardNumber")}</label>
                   <div className="relative">
                     <input
+                      required
                       type="text"
                       inputMode="numeric"
                       autoComplete="cc-number"
@@ -198,16 +273,16 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>{t("expiry")}</label>
-                    <input type="text" autoComplete="cc-exp" placeholder="MM / YY" className={inputClass} />
+                    <input required type="text" autoComplete="cc-exp" placeholder="MM / YY" className={inputClass} />
                   </div>
                   <div>
                     <label className={labelClass}>{t("cvc")}</label>
-                    <input type="text" autoComplete="cc-csc" placeholder="CVC" className={inputClass} />
+                    <input required type="text" autoComplete="cc-csc" placeholder="CVC" className={inputClass} />
                   </div>
                 </div>
                 <div>
                   <label className={labelClass}>{t("nameOnCard")}</label>
-                  <input type="text" autoComplete="cc-name" placeholder="Jane Smith" className={inputClass} />
+                  <input required type="text" autoComplete="cc-name" placeholder="Jane Smith" className={inputClass} />
                 </div>
               </div>
             </section>
