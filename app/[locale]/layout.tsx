@@ -25,6 +25,10 @@ const tajawal = Tajawal({
   display: "swap",
 });
 
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
 export const metadata: Metadata = {
   title: "LevelX — Premium Refurbished Electronics",
   description:

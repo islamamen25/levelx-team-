@@ -4,13 +4,18 @@ import { Gallery } from "@/components/pdp/gallery";
 import { ProductPanel } from "@/components/pdp/product-panel";
 import { SpecsAccordion } from "@/components/pdp/specs-accordion";
 import { SmartAddons } from "@/components/pdp/smart-addons";
+import { routing } from "@/i18n/routing";
 
 type Props = {
   params: Promise<{ locale: string; slug: string }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export async function generateStaticParams() {
-  return PRODUCTS.map((p) => ({ slug: p.slug }));
+  return routing.locales.flatMap((locale) =>
+    PRODUCTS.map((p) => ({ locale, slug: p.slug }))
+  );
 }
 
 export async function generateMetadata({ params }: Props) {
