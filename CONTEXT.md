@@ -90,7 +90,16 @@ Everything in the original "category tree + product wiring + admin + security" s
 
 ## 5. Current State
 
-**Everything in the category + product + admin + security scope is complete, wired to live Supabase, secured, and building green.** No task is mid-flight.
+**Everything in the category + product + admin + security + auth scope is complete, wired to live Supabase, secured, and building green.** No task is mid-flight.
+
+### Auth / Dashboard access (added 2026-07-21)
+- `/[locale]/login` — email + password form; Server Action in `login/actions.ts` calls `supabase.auth.signInWithPassword`, then redirects to `/[locale]/dashboard`.
+- `/[locale]/reset-password` — client form that consumes Supabase's recovery link session and calls `auth.updateUser({ password })`.
+- `(admin)/layout.tsx` now redirects unauthenticated visitors to `/[locale]/login` (was the homepage).
+- **Admin account:** `islamamen2525@gmail.com` → `profiles.role = 'admin'`. Verified logging in and reaching `/dashboard` on production.
+- **Gotcha:** the dashboard guard reads `profiles.role` directly. If a Supabase user is deleted and re-created, the new user id has **no** `profiles` row, so login succeeds but the guard bounces to the homepage — re-insert the `profiles` row with the new id.
+- **Gotcha:** Supabase's built-in email service is heavily rate-limited on free tier ("email rate limit exceeded"). To set a password without email, use Auth → Users → **Add user** with **Auto Confirm User** enabled.
+- **Supabase Auth URL config:** Site URL must be `https://levelx-team.vercel.app`, Redirect URLs `https://levelx-team.vercel.app/**`. Dashboard-sent recovery mails land on Site URL, not on `/reset-password` — a proper "forgot password" link calling `resetPasswordForEmail(email, { redirectTo })` is still **not built**.
 
 **Operational note:** the Supabase project is **free-tier and auto-pauses (`INACTIVE`) after ~7 days idle**. When paused, `xeylyyfmcucphggqwxdv.supabase.co` stops resolving → `npm run build` fails at `generateStaticParams` with `fetch failed`. **Fix:** Supabase MCP `restore_project` → wait ~1–3 min to `ACTIVE_HEALTHY`. (It was paused and restored on 2026-07-21.)
 
@@ -120,6 +129,8 @@ Everything in the original "category tree + product wiring + admin + security" s
 | Product queries | `lib/queries/products.ts` |
 | Store config (cached) | `lib/store-config.ts` |
 | Admin route guard | `app/[locale]/(admin)/layout.tsx` |
+| Login page + action | `app/[locale]/login/{page.tsx,actions.ts}` |
+| Reset-password page | `app/[locale]/reset-password/page.tsx` + `components/auth/reset-password-form.tsx` |
 | PDP | `app/[locale]/products/[slug]/page.tsx` |
 | Category page | `app/[locale]/category/[slug]/page.tsx` |
 | Revalidate webhook | `app/api/revalidate/route.ts` |
