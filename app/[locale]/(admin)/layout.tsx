@@ -10,9 +10,9 @@ export default async function AdminLayout({ children, params }: Props) {
   const { locale } = await params;
   const supabase = await createSupabaseServerClient();
 
-  // تحقق من الجلسة — TODO: غيّر `/${locale}` لـ `/${locale}/login` لما تتبني صفحة الـ login
+  // تحقق من الجلسة — غير مسجّل يذهب لصفحة تسجيل الدخول
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect(`/${locale}`);
+  if (!user) redirect(`/${locale}/login`);
 
   // تحقق من الدور — غير admin يرجع للرئيسية
   const { data: profile } = await supabase
