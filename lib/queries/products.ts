@@ -69,6 +69,7 @@ export async function getProductsByCategoryId(
     .select("*")
     .eq("category_id", categoryId)
     .eq("is_active", true)
+    .not("slug", "is", null)
     .neq("id", excludeProductId)
     .limit(limit);
 
@@ -127,6 +128,7 @@ export async function getProductsFiltered(params: {
     .from("products")
     .select("*")
     .eq("is_active", true)
+    .not("slug", "is", null)
     .range((page - 1) * pageSize, page * pageSize - 1);
 
   if (categoryId) query = query.eq("category_id", categoryId);

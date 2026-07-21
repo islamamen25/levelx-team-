@@ -52,6 +52,7 @@ async function getProductsByCategory(categoryId: string): Promise<ProductRow[]> 
     .select("id, name, description, slug, brand, images, is_active")
     .eq("category_id", categoryId)
     .eq("is_active", true)
+    .not("slug", "is", null)
     .order("name");
   return (data ?? []) as ProductRow[];
 }
