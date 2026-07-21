@@ -8,8 +8,8 @@ interface ProductCardProps {
   locale: string;
 }
 
-function formatEGP(n: number) {
-  return new Intl.NumberFormat("ar-EG", {
+function formatEGP(n: number, locale: string) {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     style: "currency",
     currency: "EGP",
     maximumFractionDigits: 0,
@@ -79,15 +79,15 @@ export function ProductCard({ product, variants, locale }: ProductCardProps) {
         )}
 
         <div className="mt-1 flex items-baseline gap-2">
-          <span className="text-base font-extrabold text-ceramic">{formatEGP(price)}</span>
+          <span className="text-base font-extrabold text-ceramic">{formatEGP(price, locale)}</span>
           {hasSale && (
-            <span className="text-xs text-slate line-through">{formatEGP(original)}</span>
+            <span className="text-xs text-slate line-through">{formatEGP(original, locale)}</span>
           )}
         </div>
 
         {isFlash && saving > 0 && (
           <p className="text-xs font-semibold text-[#16a34a]">
-            Save {formatEGP(saving)}
+            Save {formatEGP(saving, locale)}
           </p>
         )}
 

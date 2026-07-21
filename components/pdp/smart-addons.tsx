@@ -9,8 +9,8 @@ interface SmartAddonsProps {
   locale: string;
 }
 
-function formatEGP(n: number) {
-  return new Intl.NumberFormat("ar-EG", {
+function formatEGP(n: number, locale: string) {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     style: "currency",
     currency: "EGP",
     maximumFractionDigits: 0,
@@ -73,9 +73,9 @@ function AddonCard({
           <p className="text-[11px] text-slate">{product.brand}</p>
         )}
         <div className="mt-auto flex items-baseline gap-2 pt-1">
-          <span className="text-base font-extrabold text-ceramic">{formatEGP(price)}</span>
+          <span className="text-base font-extrabold text-ceramic">{formatEGP(price, locale)}</span>
           {discount > 0 && (
-            <span className="text-xs text-slate line-through">{formatEGP(original)}</span>
+            <span className="text-xs text-slate line-through">{formatEGP(original, locale)}</span>
           )}
         </div>
       </div>

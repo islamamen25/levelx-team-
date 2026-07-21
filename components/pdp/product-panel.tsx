@@ -15,8 +15,8 @@ interface ProductPanelProps {
 
 const CONDITION_ORDER: ProductCondition[] = ["Premium", "Excellent", "Good", "Fair"];
 
-function formatEGP(n: number) {
-  return new Intl.NumberFormat("ar-EG", {
+function formatEGP(n: number, locale: string) {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     style: "currency",
     currency: "EGP",
     maximumFractionDigits: 0,
@@ -156,7 +156,7 @@ export function ProductPanel({ product, variants, locale }: ProductPanelProps) {
                   {tCond(cond.toLowerCase() as "fair" | "good" | "excellent" | "premium")}
                 </span>
                 <span className="mt-0.5 text-[10px] font-semibold text-slate">
-                  {formatEGP(cp)}
+                  {formatEGP(cp, locale)}
                 </span>
               </button>
             );
@@ -193,10 +193,10 @@ export function ProductPanel({ product, variants, locale }: ProductPanelProps) {
 
       {/* Price */}
       <div className="flex flex-wrap items-baseline gap-3">
-        <span className="text-3xl font-extrabold text-ceramic">{formatEGP(price)}</span>
+        <span className="text-3xl font-extrabold text-ceramic">{formatEGP(price, locale)}</span>
         {hasSale && (
           <>
-            <span className="text-base text-slate line-through">{formatEGP(original)}</span>
+            <span className="text-base text-slate line-through">{formatEGP(original, locale)}</span>
             <span className="rounded-full bg-[var(--color-mint-soft)] px-2.5 py-0.5 text-sm font-bold text-[var(--color-mint)]">
               -{discountPct}%
             </span>
@@ -205,7 +205,7 @@ export function ProductPanel({ product, variants, locale }: ProductPanelProps) {
       </div>
       {hasSale && (
         <p className="text-sm font-semibold text-[var(--color-mint)]">
-          {t("savings")} {formatEGP(savings)}
+          {t("savings")} {formatEGP(savings, locale)}
         </p>
       )}
 
