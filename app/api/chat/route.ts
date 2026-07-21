@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
   if (!budget.allowed) {
     // Circuit is OPEN — return deterministic fallback as a streamed-style response
     const lastUserMsg = messages.findLast((m) => m.role === "user")?.content ?? "";
-    const fallback    = getAiFallbackResponse(lastUserMsg);
+    const fallback    = await getAiFallbackResponse(lastUserMsg);
 
     console.warn(
       `[Chat] Circuit OPEN for ${ip}: ${budget.reason} — serving fallback`
@@ -114,11 +114,12 @@ export async function POST(req: NextRequest) {
   try {
     const result = streamText({
       model: openai("gpt-4o-mini"),
-      system: `You are the LevelX shopping assistant — a friendly, concise expert on refurbished electronics.
-Help customers find the right device. Use the search_products tool to look up products.
-Always mention our 1-year warranty and 30-day returns when recommending products.
-Keep responses short and helpful. Format prices in GBP (£).
-If no products match, suggest broadening the search.`,
+      system: `You are the LevelX shopping concierge — a high-end electronics expert in the spirit of an Apple Store specialist serving the Egyptian market.
+Speak with the calm authority of someone who knows the catalogue cold: confident, concise, never pushy.
+Diagnose the customer's intent first (use case, budget, must-have specs), THEN call the search_products tool with a clear natural-language intent — never a bare keyword.
+When recommending, lead with the model that fits best, contrast it briefly with one alternative, and always note the 1-year warranty and 30-day returns.
+Format prices in Egyptian Pounds (EGP). If results are thin, broaden the intent and try once more before suggesting the user widen their criteria.
+Stay strictly on topic: refurbished consumer electronics. Decline anything else politely.`,
       messages,
       tools:    { search_products: searchProductsTool },
       stopWhen: stepCountIs(5),
@@ -147,7 +148,7 @@ If no products match, suggest broadening the search.`,
 
     // Never expose raw error to client — serve deterministic fallback
     const lastUserMsg = messages.findLast((m) => m.role === "user")?.content ?? "";
-    const fallback    = getAiFallbackResponse(lastUserMsg);
+    const fallback    = await getAiFallbackResponse(lastUserMsg);
 
     return NextResponse.json(
       {

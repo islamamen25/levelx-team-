@@ -1,3 +1,5 @@
+import { cacheLife, cacheTag } from "next/cache";
+
 /**
  * Server-side utility — fetches store_configuration from Supabase.
  * Used by the locale layout (theme injection) and home page (section order).
@@ -45,6 +47,10 @@ export const DEFAULT_CONFIG: StoreConfig = {
 };
 
 export async function getStoreConfig(): Promise<StoreConfig> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("store-config");
+
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/store_configuration?id=eq.1&select=theme,layout`,
@@ -53,8 +59,6 @@ export async function getStoreConfig(): Promise<StoreConfig> {
           apikey:        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
           Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
         },
-        // No caching — always fresh so builder changes appear immediately
-        cache: "no-store",
       }
     );
 

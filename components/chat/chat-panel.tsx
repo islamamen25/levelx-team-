@@ -5,7 +5,7 @@
  * Heavy chat UI — dynamically imported by chat-widget.tsx on first FAB click.
  * Intentionally isolated so next/dynamic code-splits the AI SDK bundle.
  *
- * AI SDK v4 API notes:
+ * AI SDK v6 API notes:
  *   - useChat() returns { messages, sendMessage, status } — no input/handleSubmit
  *   - Input state is managed locally with useState
  *   - sendMessage({ text }) submits the user message
@@ -56,7 +56,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-6 end-6 z-50 flex h-[500px] w-[380px] flex-col overflow-hidden rounded-2xl border border-[var(--color-iron)] bg-white shadow-[0_24px_60px_-20px_oklch(0_0_0/0.15)]">
+    <div className="fixed bottom-4 end-4 z-50 flex h-[500px] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-[var(--color-iron)] bg-white shadow-[0_24px_60px_-20px_oklch(0_0_0/0.15)]">
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[var(--color-iron)] bg-[var(--color-mint)] px-4 py-3">

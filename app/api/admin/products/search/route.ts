@@ -1,95 +1,69 @@
 /**
  * GET /api/admin/products/search
  * Lightweight product search for the Storefront Builder product selector.
- * Queries Supabase products table first; falls back to mock data when empty.
+ * Queries the Supabase products + variants tables.
  *
  * Query params:
  *   q         — search string (name / brand)
- *   category  — filter by category name
+ *   category  — filter by category_id (UUID)
  *   limit     — max results (default 50)
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { PRODUCTS } from "@/lib/mock-products";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { requireAdmin } from "@/lib/supabase/require-admin";
 
 export interface SearchProduct {
   id:       string;
   name:     string;
   brand:    string;
-  category: string;
+  category: string;   // category_id or ""
   price:    number;
-  gradient: string;   // CSS gradient (mock) or first image URL (real)
-  source:   "db" | "mock";
+  image:    string;   // first image URL or ""
+  source:   "db";
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const { supabase } = auth;
+
   const { searchParams } = new URL(req.url);
-  const q        = (searchParams.get("q") ?? "").toLowerCase().trim();
+  const q        = (searchParams.get("q") ?? "").trim();
   const category = searchParams.get("category") ?? "";
   const limit    = Math.min(100, parseInt(searchParams.get("limit") ?? "50"));
 
-  // ── 1. Try Supabase ───────────────────────────────────────────────────────
-  let dbQuery = supabase
+  let query = supabase
     .from("products")
-    .select("id, name, brand, images, specs, variants:variants(price, condition)")
+    .select("id, name, brand, category_id, images, variants(price, sale_price)")
+    .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (q)        dbQuery = dbQuery.or(`name.ilike.%${q}%,brand.ilike.%${q}%`);
-  if (category) dbQuery = dbQuery.eq("category_id", category);
+  if (q)        query = query.or(`name.ilike.%${q}%,brand.ilike.%${q}%`);
+  if (category) query = query.eq("category_id", category);
 
-  const { data: dbRows } = await dbQuery;
+  const { data, error } = await query;
 
-  if (dbRows && dbRows.length > 0) {
-    const products: SearchProduct[] = dbRows.map((row) => {
-      const variants = (row.variants as { price: number }[]) ?? [];
-      const minPrice = variants.length
-        ? Math.min(...variants.map((v) => v.price))
-        : 0;
-      const firstImage = Array.isArray(row.images) ? row.images[0] : null;
-
-      return {
-        id:       row.id,
-        name:     row.name,
-        brand:    row.brand ?? "",
-        category: "",
-        price:    minPrice,
-        gradient: typeof firstImage === "string"
-          ? firstImage
-          : "linear-gradient(135deg, #e8e8ed 0%, #d1d1d6 100%)",
-        source: "db",
-      };
-    });
-    return NextResponse.json({ products, source: "db" });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // ── 2. Fall back to mock products ─────────────────────────────────────────
-  let mock = PRODUCTS;
+  const products: SearchProduct[] = (data ?? []).map((row) => {
+    const variants = (row.variants as { price: number; sale_price: number | null }[]) ?? [];
+    const minPrice = variants.length
+      ? Math.min(...variants.map((v) => v.sale_price ?? v.price))
+      : 0;
+    const images = row.images as string[];
+    return {
+      id:       row.id,
+      name:     row.name,
+      brand:    row.brand ?? "",
+      category: row.category_id ?? "",
+      price:    minPrice,
+      image:    images?.[0] ?? "",
+      source:   "db",
+    };
+  });
 
-  if (q) {
-    mock = mock.filter((p) =>
-      `${p.name} ${p.brand} ${p.category}`.toLowerCase().includes(q)
-    );
-  }
-  if (category) {
-    mock = mock.filter((p) => p.category.toLowerCase() === category.toLowerCase());
-  }
-
-  const products: SearchProduct[] = mock.slice(0, limit).map((p) => ({
-    id:       p.id,
-    name:     p.name,
-    brand:    p.brand,
-    category: p.category,
-    price:    Math.min(...p.variants.map((v) => v.price)),
-    gradient: p.images[0]?.gradient ?? "linear-gradient(135deg, #e8e8ed 0%, #d1d1d6 100%)",
-    source:   "mock",
-  }));
-
-  return NextResponse.json({ products, source: "mock" });
+  return NextResponse.json({ products, source: "db" });
 }

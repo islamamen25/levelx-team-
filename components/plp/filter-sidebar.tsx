@@ -13,7 +13,7 @@ import {
 
 interface FilterSidebarProps {
   brands: string[];
-  categories: string[];
+  categories: { name: string; slug: string }[];
   locale: string;
 }
 
@@ -94,11 +94,11 @@ export function FilterSidebar({ brands, categories, locale }: FilterSidebarProps
           <AccordionContent>
             <div className="flex flex-wrap gap-2">
               {categories.map((cat) => {
-                const isActive = activeCategory === cat;
+                const isActive = activeCategory === cat.slug;
                 return (
                   <button
-                    key={cat}
-                    onClick={() => update("category", isActive ? "" : cat)}
+                    key={cat.slug}
+                    onClick={() => update("category", isActive ? "" : cat.slug)}
                     className={[
                       "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                       isActive
@@ -106,7 +106,7 @@ export function FilterSidebar({ brands, categories, locale }: FilterSidebarProps
                         : "border-[var(--color-iron)] text-ceramic hover:border-ceramic/60",
                     ].join(" ")}
                   >
-                    {cat}
+                    {cat.name}
                   </button>
                 );
               })}

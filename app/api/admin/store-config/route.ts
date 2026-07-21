@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@supabase/supabase-js";
 import { rateLimit, rateLimitHeaders, getClientId } from "@/lib/rate-limit";
+import { requireAdmin } from "@/lib/supabase/require-admin";
 
 const RL_READ  = { limit: 30, windowMs: 60_000 } as const;
 const RL_WRITE = { limit: 10, windowMs: 60_000 } as const;
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // ── Zod Schemas ───────────────────────────────────────────────────────────────
 
@@ -42,6 +37,11 @@ function apiError(msg: string, status = 400, details?: unknown) {
 export async function GET(req: NextRequest) {
   const rl = rateLimit(`config:read:${getClientId(req)}`, RL_READ);
   if (!rl.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rl) });
+
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const { supabase } = auth;
+
   const { data, error } = await supabase
     .from("store_configuration")
     .select("*")
@@ -56,6 +56,11 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const rl = rateLimit(`config:write:${getClientId(req)}`, RL_WRITE);
   if (!rl.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rl) });
+
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const { supabase } = auth;
+
   let body: unknown;
   try { body = await req.json(); } catch { return apiError("Invalid JSON"); }
 

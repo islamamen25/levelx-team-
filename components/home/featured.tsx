@@ -1,44 +1,50 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { PRODUCTS } from "@/lib/mock-products";
+import { getProductsFiltered } from "@/lib/queries/products";
 import { FeaturedCarousel } from "@/components/home/featured-carousel";
 
 interface FeaturedProps {
   locale: string;
 }
 
-/** Category filter chips — mirrors Back Market's "Price drop | MacBook | iPad | ..." tabs */
 const FILTER_CHIPS: { label: string; arLabel: string; emoji: string; query: string }[] = [
   { label: "Price drop",  arLabel: "تخفيضات",     emoji: "🏷️",  query: "" },
-  { label: "MacBook",     arLabel: "ماك بوك",     emoji: "💻",  query: "brand=Apple&category=Laptops" },
-  { label: "iPad",        arLabel: "آيباد",        emoji: "⬛",  query: "brand=Apple&category=Tablets" },
+  { label: "MacBook",     arLabel: "ماك بوك",     emoji: "💻",  query: "brand=Apple&category=laptops" },
+  { label: "iPad",        arLabel: "آيباد",        emoji: "⬛",  query: "brand=Apple&category=tablets" },
   { label: "Android",     arLabel: "أندرويد",      emoji: "📱",  query: "brand=Samsung" },
-  { label: "iPhone",      arLabel: "آيفون",        emoji: "📱",  query: "brand=Apple&category=Smartphones" },
-  { label: "AirPods",     arLabel: "إيربودز",      emoji: "🎧",  query: "category=Headphones" },
-  { label: "Gaming",      arLabel: "ألعاب",        emoji: "🎮",  query: "category=Consoles" },
+  { label: "iPhone",      arLabel: "آيفون",        emoji: "📱",  query: "brand=Apple&category=mobile" },
+  { label: "Gaming",      arLabel: "ألعاب",        emoji: "🎮",  query: "category=gaming" },
 ];
 
 export async function Featured({ locale }: FeaturedProps) {
-  const t  = await getTranslations({ locale, namespace: "featured" });
+  const t    = await getTranslations({ locale, namespace: "featured" });
   const isAr = locale === "ar";
 
-  // Sort by savings (biggest discount first), take top 6
-  const deals = [...PRODUCTS]
-    .map((p) => {
-      const v = p.variants.reduce((a, b) => (a.price < b.price ? a : b));
-      return { product: p, savings: v.original_price - v.price };
+  // Top deals: products that have a sale_price set
+  const results = await getProductsFiltered({ pageSize: 8 });
+
+  // Sort by biggest discount
+  const deals = results
+    .map((r) => {
+      const cheapest = r.variants.reduce<typeof r.variants[0] | undefined>((best, v) => {
+        const p = v.sale_price ?? v.price;
+        if (!best) return v;
+        return p < (best.sale_price ?? best.price) ? v : best;
+      }, undefined);
+      const savings = cheapest?.sale_price != null
+        ? cheapest.price - cheapest.sale_price
+        : 0;
+      return { ...r, savings };
     })
     .sort((a, b) => b.savings - a.savings)
-    .slice(0, 6)
-    .map((d) => d.product);
+    .slice(0, 6);
 
   return (
     <section className="bg-white py-14 md:py-18" aria-labelledby="featured-title">
       <div className="container-px mx-auto">
-        {/* ── Main layout: lifestyle image left + filter tabs & cards right ── */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(260px,1fr)_2fr] lg:grid-cols-[minmax(300px,1fr)_2.5fr]">
 
-          {/* Left: Lifestyle image — NOT a product, just aesthetic ambiance */}
+          {/* Left: lifestyle image */}
           <div
             className="hidden overflow-hidden rounded-2xl md:block"
             style={{
@@ -46,7 +52,6 @@ export async function Featured({ locale }: FeaturedProps) {
               minHeight: "420px",
             }}
           >
-            {/* Styled lifestyle scene placeholder */}
             <div className="flex h-full flex-col items-center justify-end p-6">
               <div className="mb-4 flex items-end gap-3">
                 <span style={{ fontSize: "3rem", lineHeight: 1 }} aria-hidden>🎧</span>
@@ -61,7 +66,7 @@ export async function Featured({ locale }: FeaturedProps) {
 
           {/* Right column */}
           <div className="flex flex-col gap-4">
-            {/* Filter chips — horizontal scroll like Back Market */}
+            {/* Filter chips */}
             <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex gap-2" style={{ width: "max-content" }}>
                 {FILTER_CHIPS.map((chip, i) => (
@@ -86,7 +91,6 @@ export async function Featured({ locale }: FeaturedProps) {
               </div>
             </div>
 
-            {/* Product cards — carousel with title + arrows in header */}
             <FeaturedCarousel deals={deals} locale={locale} title={t("title")} />
           </div>
         </div>

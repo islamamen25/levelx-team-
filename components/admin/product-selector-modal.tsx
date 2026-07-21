@@ -27,7 +27,7 @@ export function ProductSelectorModal({
   const [products, setProducts] = useState<SearchProduct[]>([]);
   const [loading,  setLoading]  = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected));
-  const [source,   setSource]   = useState<"db" | "mock">("mock");
+  const [source,   setSource]   = useState<"db" | "mock">("db");
 
   // ── Reset selection when modal opens ─────────────────────────────────────
   useEffect(() => {
@@ -87,7 +87,7 @@ export function ProductSelectorModal({
               for <span className="font-semibold text-[var(--color-ceramic)]">{sectionLabel}</span>
               {source === "mock" && (
                 <span className="ml-2 text-[10px] text-amber-500 font-medium">
-                  · using demo data (add real products in Catalog)
+                  · no products found — add products in Catalog first
                 </span>
               )}
             </p>
@@ -139,19 +139,13 @@ export function ProductSelectorModal({
                         : "hover:bg-[var(--color-obsidian)]",
                     ].join(" ")}>
 
-                    {/* Product image / gradient */}
-                    <div
-                      className="h-10 w-10 shrink-0 rounded-xl overflow-hidden"
-                      style={{
-                        background: product.gradient.startsWith("http")
-                          ? undefined
-                          : product.gradient,
-                      }}>
-                      {product.gradient.startsWith("http") && (
+                    {/* Product image */}
+                    <div className="h-10 w-10 shrink-0 rounded-xl overflow-hidden bg-[#F5F5F7]">
+                      {product.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={product.gradient} alt={product.name}
-                          className="h-full w-full object-cover" />
-                      )}
+                        <img src={product.image} alt={product.name}
+                          className="h-full w-full object-contain p-1" />
+                      ) : null}
                     </div>
 
                     {/* Info */}
@@ -168,7 +162,9 @@ export function ProductSelectorModal({
 
                     {/* Price */}
                     <span className="text-sm font-bold text-[var(--color-ceramic)] shrink-0">
-                      {product.price > 0 ? `£${product.price.toLocaleString()}` : "—"}
+                      {product.price > 0
+                        ? new Intl.NumberFormat("ar-EG", { style: "currency", currency: "EGP", maximumFractionDigits: 0 }).format(product.price)
+                        : "—"}
                     </span>
 
                     {/* Checkbox */}

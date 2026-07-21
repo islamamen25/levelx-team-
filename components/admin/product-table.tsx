@@ -1,25 +1,17 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Plus, Pencil, Trash2, ChevronUp, ChevronDown, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { ProductForm } from "@/components/admin/product-form";
-import { PRODUCTS } from "@/lib/mock-products";
-import type { MockProduct } from "@/lib/mock-products";
-import type { ProductCondition } from "@/lib/supabase";
+import type { DbProduct, DbVariant, ProductCondition } from "@/lib/supabase";
 
-// ── Condition badge styles ────────────────────────────────────────────────────
 const CONDITION_STYLES: Record<ProductCondition, string> = {
   Premium:   "bg-violet-100 text-violet-700 border border-violet-200",
   Excellent: "bg-emerald-100 text-emerald-700 border border-emerald-200",
@@ -27,106 +19,125 @@ const CONDITION_STYLES: Record<ProductCondition, string> = {
   Fair:      "bg-amber-100 text-amber-700 border border-amber-200",
 };
 
-const CATEGORIES = ["All", "Smartphones", "Laptops", "Tablets", "Consoles", "Smartwatches", "Headphones"];
+const CONDITION_ORDER: ProductCondition[] = ["Premium", "Excellent", "Good", "Fair"];
 
 type SortField = "name" | "brand" | "price" | "stock";
-type SortDir = "asc" | "desc";
+type SortDir   = "asc" | "desc";
 
-// ── Component ─────────────────────────────────────────────────────────────────
-export function ProductTable() {
-  const [search, setSearch]           = useState("");
-  const [category, setCategory]       = useState("All");
-  const [sortField, setSortField]     = useState<SortField>("name");
-  const [sortDir, setSortDir]         = useState<SortDir>("asc");
-  const [dialogOpen, setDialogOpen]   = useState(false);
-  const [editProduct, setEditProduct] = useState<MockProduct | undefined>();
-  const [products, setProducts]       = useState<MockProduct[]>(PRODUCTS);
-  const [deleteId, setDeleteId]       = useState<string | null>(null);
+type Row = { product: DbProduct; variants: DbVariant[] };
 
-  // ── Sort handler ──────────────────────────────────────────────────────────
+interface ProductTableProps {
+  initialProducts: Row[];
+  categories: { id: string; name: string }[];
+}
+
+function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: SortDir }) {
+  if (sortField !== field) return <ChevronUp className="h-3 w-3 text-gray-300" />;
+  return sortDir === "asc"
+    ? <ChevronUp className="h-3 w-3 text-[var(--color-ceramic)]" />
+    : <ChevronDown className="h-3 w-3 text-[var(--color-ceramic)]" />;
+}
+
+function lowestPrice(variants: DbVariant[]): number {
+  if (!variants.length) return 0;
+  return Math.min(...variants.map((v) => v.sale_price ?? v.price));
+}
+
+function totalStock(variants: DbVariant[]): number {
+  return variants.reduce((s, v) => s + v.stock_quantity, 0);
+}
+
+function topCondition(variants: DbVariant[]): ProductCondition {
+  for (const c of CONDITION_ORDER) {
+    if (variants.some((v) => v.condition === c)) return c;
+  }
+  return "Good";
+}
+
+export function ProductTable({ initialProducts, categories }: ProductTableProps) {
+  const router = useRouter();
+
+  const [search, setSearch]         = useState("");
+  const [categoryFilter, setCat]    = useState("All");
+  const [sortField, setSortField]   = useState<SortField>("name");
+  const [sortDir, setSortDir]       = useState<SortDir>("asc");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editRow, setEditRow]       = useState<Row | undefined>();
+  const [deleteId, setDeleteId]     = useState<string | null>(null);
+  const [deleting, setDeleting]     = useState(false);
+
+  const CATS = ["All", ...categories.map((c) => c.name)];
+
   const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDir("asc");
-    }
+    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(field); setSortDir("asc"); }
   };
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ChevronUp className="h-3 w-3 text-gray-300" />;
-    return sortDir === "asc"
-      ? <ChevronUp className="h-3 w-3 text-[var(--color-ceramic)]" />
-      : <ChevronDown className="h-3 w-3 text-[var(--color-ceramic)]" />;
-  };
-
-  // ── Filter + sort ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    let list = [...products];
+    let list = [...initialProducts];
+
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q) ||
-          p.slug.toLowerCase().includes(q)
+      list = list.filter(({ product: p }) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.brand ?? "").toLowerCase().includes(q) ||
+        (p.slug ?? "").toLowerCase().includes(q)
       );
     }
-    if (category !== "All") {
-      list = list.filter((p) => p.category === category);
+
+    if (categoryFilter !== "All") {
+      const catId = categories.find((c) => c.name === categoryFilter)?.id;
+      if (catId) list = list.filter(({ product: p }) => p.category_id === catId);
     }
+
     list.sort((a, b) => {
-      let aVal: string | number = "";
-      let bVal: string | number = "";
-      if (sortField === "name")  { aVal = a.name;  bVal = b.name; }
-      if (sortField === "brand") { aVal = a.brand; bVal = b.brand; }
-      if (sortField === "price") { aVal = Math.min(...a.variants.map((v) => v.price)); bVal = Math.min(...b.variants.map((v) => v.price)); }
-      if (sortField === "stock") { aVal = a.variants.reduce((s, v) => s + v.stock, 0); bVal = b.variants.reduce((s, v) => s + v.stock, 0); }
-      if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
-      if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+      let av: string | number = "";
+      let bv: string | number = "";
+      if (sortField === "name")  { av = a.product.name;          bv = b.product.name; }
+      if (sortField === "brand") { av = a.product.brand ?? "";   bv = b.product.brand ?? ""; }
+      if (sortField === "price") { av = lowestPrice(a.variants); bv = lowestPrice(b.variants); }
+      if (sortField === "stock") { av = totalStock(a.variants);  bv = totalStock(b.variants); }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
-    return list;
-  }, [products, search, category, sortField, sortDir]);
 
-  // ── Delete (mock) ─────────────────────────────────────────────────────────
-  const handleDelete = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    return list;
+  }, [initialProducts, search, categoryFilter, sortField, sortDir, categories]);
+
+  const handleDelete = async (id: string) => {
+    setDeleting(true);
+    const res = await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" });
+    setDeleting(false);
     setDeleteId(null);
+    if (res.ok) router.refresh();
   };
 
-  const openAdd = () => { setEditProduct(undefined); setDialogOpen(true); };
-  const openEdit = (p: MockProduct) => { setEditProduct(p); setDialogOpen(true); };
+  const openAdd  = () => { setEditRow(undefined); setDialogOpen(true); };
+  const openEdit = (row: Row) => { setEditRow(row); setDialogOpen(true); };
 
-  const lowestPrice = (p: MockProduct) =>
-    Math.min(...p.variants.map((v) => v.price));
-  const totalStock = (p: MockProduct) =>
-    p.variants.reduce((s, v) => s + v.stock, 0);
+  const categoryName = (id: string | null) =>
+    categories.find((c) => c.id === id)?.name ?? "—";
 
   return (
     <div className="space-y-5">
-      {/* ── Toolbar ── */}
+      {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Search */}
         <div className="relative max-w-xs w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
           <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search products…"
             className="h-9 pl-9 text-sm border-gray-100 bg-white"
           />
         </div>
 
-        {/* Category pills */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
+          {CATS.map((cat) => (
+            <button key={cat} onClick={() => setCat(cat)}
               className={[
                 "rounded-full px-3 py-1 text-xs font-semibold transition-all",
-                category === cat
+                categoryFilter === cat
                   ? "bg-[var(--color-ceramic)] text-white"
                   : "bg-[var(--color-obsidian)] text-[var(--color-slate)] hover:text-[var(--color-ceramic)]",
               ].join(" ")}>
@@ -141,14 +152,14 @@ export function ProductTable() {
         </Button>
       </div>
 
-      {/* ── Stats row ── */}
+      {/* Stats row */}
       <div className="flex items-center gap-4 text-xs text-[var(--color-slate)]">
         <span>{filtered.length} products</span>
         <span>·</span>
-        <span>{filtered.reduce((s, p) => s + totalStock(p), 0).toLocaleString()} units in stock</span>
+        <span>{filtered.reduce((s, r) => s + totalStock(r.variants), 0).toLocaleString()} units in stock</span>
       </div>
 
-      {/* ── Table ── */}
+      {/* Table */}
       <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
@@ -156,13 +167,13 @@ export function ProductTable() {
               <TableHead className="w-[300px]">
                 <button onClick={() => handleSort("name")}
                   className="flex items-center gap-1 text-xs font-semibold text-[var(--color-slate)] hover:text-[var(--color-ceramic)] transition-colors">
-                  Product <SortIcon field="name" />
+                  Product <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
                 </button>
               </TableHead>
               <TableHead>
                 <button onClick={() => handleSort("brand")}
                   className="flex items-center gap-1 text-xs font-semibold text-[var(--color-slate)] hover:text-[var(--color-ceramic)] transition-colors">
-                  Brand <SortIcon field="brand" />
+                  Brand <SortIcon field="brand" sortField={sortField} sortDir={sortDir} />
                 </button>
               </TableHead>
               <TableHead>Category</TableHead>
@@ -170,13 +181,13 @@ export function ProductTable() {
               <TableHead>
                 <button onClick={() => handleSort("price")}
                   className="flex items-center gap-1 text-xs font-semibold text-[var(--color-slate)] hover:text-[var(--color-ceramic)] transition-colors">
-                  From <SortIcon field="price" />
+                  From <SortIcon field="price" sortField={sortField} sortDir={sortDir} />
                 </button>
               </TableHead>
               <TableHead>
                 <button onClick={() => handleSort("stock")}
                   className="flex items-center gap-1 text-xs font-semibold text-[var(--color-slate)] hover:text-[var(--color-ceramic)] transition-colors">
-                  Stock <SortIcon field="stock" />
+                  Stock <SortIcon field="stock" sortField={sortField} sortDir={sortDir} />
                 </button>
               </TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -195,21 +206,23 @@ export function ProductTable() {
               </TableRow>
             )}
 
-            {filtered.map((product) => {
-              const stock = totalStock(product);
-              const price = lowestPrice(product);
-              // Default condition display from first condition_option (highest grade available)
-              const topCondition = product.condition_options.at(-1)?.tier ?? "Good";
+            {filtered.map((row) => {
+              const { product, variants } = row;
+              const stock    = totalStock(variants);
+              const price    = lowestPrice(variants);
+              const cond     = topCondition(variants);
+              const image    = (product.images as string[])?.[0];
 
               return (
                 <TableRow key={product.id}
                   className="border-gray-50 hover:bg-[var(--color-obsidian)]/50 transition-colors group">
-                  {/* Product */}
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      {/* Gradient image placeholder */}
-                      <div className="h-10 w-10 rounded-xl shrink-0 overflow-hidden"
-                        style={{ background: product.images[0]?.gradient ?? "#f5f5f7" }} />
+                      <div className="h-10 w-10 rounded-xl shrink-0 overflow-hidden bg-[#F5F5F7]">
+                        {image
+                          ? <img src={image} alt={product.name} className="h-full w-full object-contain p-1" />
+                          : <div className="h-full w-full" />}
+                      </div>
                       <div>
                         <p className="text-sm font-semibold text-[var(--color-ceramic)] leading-tight line-clamp-1">
                           {product.name}
@@ -221,31 +234,30 @@ export function ProductTable() {
                     </div>
                   </TableCell>
 
-                  {/* Brand */}
                   <TableCell>
-                    <span className="text-sm text-[var(--color-ceramic)]">{product.brand}</span>
+                    <span className="text-sm text-[var(--color-ceramic)]">{product.brand ?? "—"}</span>
                   </TableCell>
 
-                  {/* Category */}
                   <TableCell>
-                    <span className="text-xs text-[var(--color-slate)]">{product.category}</span>
+                    <span className="text-xs text-[var(--color-slate)]">{categoryName(product.category_id)}</span>
                   </TableCell>
 
-                  {/* Condition */}
                   <TableCell>
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${CONDITION_STYLES[topCondition as ProductCondition] ?? CONDITION_STYLES.Good}`}>
-                      {topCondition}
-                    </span>
+                    {variants.length > 0 ? (
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${CONDITION_STYLES[cond]}`}>
+                        {cond}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-300">No variants</span>
+                    )}
                   </TableCell>
 
-                  {/* Price */}
                   <TableCell>
                     <span className="text-sm font-bold text-[var(--color-ceramic)]">
-                      £{price.toLocaleString()}
+                      {price > 0 ? `EGP ${price.toLocaleString()}` : "—"}
                     </span>
                   </TableCell>
 
-                  {/* Stock */}
                   <TableCell>
                     <div className="flex items-center gap-1.5">
                       <div className={`h-1.5 w-1.5 rounded-full ${stock > 10 ? "bg-emerald-400" : stock > 0 ? "bg-amber-400" : "bg-red-400"}`} />
@@ -255,10 +267,9 @@ export function ProductTable() {
                     </div>
                   </TableCell>
 
-                  {/* Actions */}
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEdit(product)}
+                      <button onClick={() => openEdit(row)}
                         className="rounded-lg p-2 hover:bg-gray-100 transition-colors text-[var(--color-slate)] hover:text-[var(--color-ceramic)]">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -275,18 +286,20 @@ export function ProductTable() {
         </Table>
       </div>
 
-      {/* ── Add / Edit Dialog ── */}
+      {/* Add / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl p-0 rounded-2xl overflow-hidden gap-0 border-gray-100">
           <ProductForm
-            product={editProduct}
+            product={editRow?.product}
+            variants={editRow?.variants}
             onClose={() => setDialogOpen(false)}
-            onSaved={() => {}}
+            onSaved={() => router.refresh()}
+            categories={categories}
           />
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete Confirm Dialog ── */}
+      {/* Delete Confirm Dialog */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent className="max-w-sm rounded-2xl border-gray-100 p-6">
           <div className="space-y-4">
@@ -302,9 +315,11 @@ export function ProductTable() {
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setDeleteId(null)}
                 className="flex-1 h-9 border-gray-100 text-sm">Cancel</Button>
-              <Button onClick={() => deleteId && handleDelete(deleteId)}
+              <Button
+                onClick={() => deleteId && handleDelete(deleteId)}
+                disabled={deleting}
                 className="flex-1 h-9 bg-red-500 hover:bg-red-600 text-white text-sm">
-                Delete
+                {deleting ? "Deleting…" : "Delete"}
               </Button>
             </div>
           </div>

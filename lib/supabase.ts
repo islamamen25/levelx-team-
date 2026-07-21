@@ -1,40 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/types";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Browser / client-side singleton
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
-// ── Types aligned with DB schema ──────────────────────────────────────────────
+// ── Convenience row types ─────────────────────────────────────────────────────
 
-export type ProductCondition = "Premium" | "Excellent" | "Good" | "Fair";
+export type ProductCondition = Database["public"]["Enums"]["product_condition"];
 
-export interface DbProduct {
-  id: string;
-  name: string;
-  description: string | null;
-  slug: string | null;
-  brand: string | null;
-  category_id: string | null;
-  is_serialized: boolean;
-  images: string[];          // ordered Supabase Storage public URLs
-  specs: Record<string, string>;
-  ai_metadata: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-}
+export type DbProduct = Database["public"]["Tables"]["products"]["Row"];
 
-export interface DbVariant {
-  id: string;
-  product_id: string;
-  sku_code: string;
-  price: number;
-  sale_price: number | null;
-  discount_badge: string | null;
-  stock_quantity: number;
-  condition: ProductCondition;
-  attributes: Record<string, string>;
-  created_at: string;
-  updated_at: string;
-}
+export type DbVariant = Database["public"]["Tables"]["variants"]["Row"];
+
+export type DbCategory = Database["public"]["Tables"]["categories"]["Row"];

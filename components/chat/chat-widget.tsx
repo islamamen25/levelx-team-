@@ -31,10 +31,12 @@ const ChatPanel = dynamic(
     ssr:     false,
     loading: () => (
       // Thin loading state shown during the ~100ms dynamic import
-      <div className="fixed bottom-6 end-6 z-50 flex h-[500px] w-[380px] flex-col overflow-hidden rounded-2xl border border-[var(--color-iron)] bg-white shadow-[0_24px_60px_-20px_oklch(0_0_0/0.15)] items-center justify-center gap-2">
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-mint)]" style={{ animationDelay: "0ms" }} />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-mint)]" style={{ animationDelay: "150ms" }} />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-mint)]" style={{ animationDelay: "300ms" }} />
+      <div className="fixed bottom-4 end-4 z-50 flex h-[500px] w-[min(380px,calc(100vw-2rem))] flex-col items-center justify-center overflow-hidden rounded-2xl border border-[var(--color-iron)] bg-white shadow-[0_24px_60px_-20px_oklch(0_0_0/0.15)]">
+        <div className="flex items-center gap-1">
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-mint)]" style={{ animationDelay: "0ms" }} />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-mint)]" style={{ animationDelay: "150ms" }} />
+          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-mint)]" style={{ animationDelay: "300ms" }} />
+        </div>
       </div>
     ),
   }
@@ -46,15 +48,14 @@ export function ChatWidget() {
   const [isPanelMounted, setIsPanelMounted] = useState(false);
   const [isOpen,         setIsOpen]         = useState(false);
 
-  // Never show on admin pages
-  if (pathname.includes("/dashboard")) return null;
-
-  // On first click: mount the heavy panel, then open it
-  // On subsequent clicks: just toggle open state (panel already in memory)
+  // Defined before early return to satisfy Rules of Hooks
   const handleFabClick = useCallback(() => {
     if (!isPanelMounted) setIsPanelMounted(true);
     setIsOpen(true);
   }, [isPanelMounted]);
+
+  // Never show on admin pages
+  if (pathname.includes("/dashboard")) return null;
 
   return (
     <>
@@ -63,7 +64,7 @@ export function ChatWidget() {
         <button
           type="button"
           onClick={handleFabClick}
-          className="fixed bottom-6 end-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-mint)] text-white shadow-[0_8px_24px_-6px_oklch(0.64_0.10_184/0.4)] transition-transform hover:scale-105 active:scale-95"
+          className="fixed bottom-4 end-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-mint)] text-white shadow-[0_8px_24px_-6px_oklch(0.64_0.10_184/0.4)] transition-transform hover:scale-105 active:scale-95"
           aria-label={t("title")}
         >
           <MessageCircle className="h-6 w-6" strokeWidth={2} />

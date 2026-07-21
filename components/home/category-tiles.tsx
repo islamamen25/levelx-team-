@@ -1,22 +1,29 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import {
-  Smartphone,
-  Laptop,
-  Tablet,
-  Gamepad2,
-  Watch,
-  Headphones,
+  Smartphone, Laptop, Gamepad2, Car, Cpu, Watch, Headphones, ShoppingBag,
   type LucideIcon,
 } from "lucide-react";
+import { getCategoryTree } from "@/lib/queries/categories";
 
-const TILES: { key: string; slug: string; Icon: LucideIcon; colorKey: string }[] = [
-  { key: "smartphones",  slug: "Smartphones",  Icon: Smartphone, colorKey: "smartphones" },
-  { key: "laptops",      slug: "Laptops",      Icon: Laptop,     colorKey: "laptops" },
-  { key: "tablets",      slug: "Tablets",      Icon: Tablet,     colorKey: "tablets" },
-  { key: "consoles",     slug: "Consoles",     Icon: Gamepad2,   colorKey: "consoles" },
-  { key: "smartwatches", slug: "Smartwatches", Icon: Watch,      colorKey: "watches" },
-  { key: "headphones",   slug: "Headphones",   Icon: Headphones, colorKey: "audio" },
+// خريطة slug → icon + colorKey (يرجع إلى المتغيرات الموجودة في globals.css)
+const SLUG_CONFIG: Record<string, { Icon: LucideIcon; colorKey: string }> = {
+  "mobile":          { Icon: Smartphone, colorKey: "smartphones" },
+  "gaming":          { Icon: Gamepad2,   colorKey: "consoles"    },
+  "car-accessories": { Icon: Car,        colorKey: "tablets"     },
+  "computing":       { Icon: Laptop,     colorKey: "laptops"     },
+  "smart-devices":   { Icon: Cpu,        colorKey: "watches"     },
+  "smartphones":     { Icon: Smartphone, colorKey: "smartphones" },
+  "laptops":         { Icon: Laptop,     colorKey: "laptops"     },
+  "tablets":         { Icon: Watch,      colorKey: "tablets"     },
+  "consoles":        { Icon: Gamepad2,   colorKey: "consoles"    },
+  "headphones":      { Icon: Headphones, colorKey: "audio"       },
+  "smartwatches":    { Icon: Watch,      colorKey: "watches"     },
+  "audio":           { Icon: Headphones, colorKey: "audio"       },
+};
+
+const FALLBACK_COLORS = [
+  "smartphones", "consoles", "laptops", "tablets", "watches", "audio",
 ];
 
 interface CategoryTilesProps {
@@ -24,7 +31,13 @@ interface CategoryTilesProps {
 }
 
 export async function CategoryTiles({ locale }: CategoryTilesProps) {
-  const t = await getTranslations({ locale, namespace: "home" });
+  const [t, tree] = await Promise.all([
+    getTranslations({ locale, namespace: "home" }),
+    getCategoryTree(),
+  ]);
+
+  // نأخذ الأقسام الجذرية فقط (max 6 للعرض)
+  const rootCats = tree.slice(0, 6);
 
   return (
     <section className="bg-white py-16 md:py-20" aria-labelledby="categories-title">
@@ -41,33 +54,34 @@ export async function CategoryTiles({ locale }: CategoryTilesProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-6">
-          {TILES.map(({ key, slug, Icon, colorKey }) => (
-            <Link
-              key={key}
-              href={{ pathname: "/products", query: { category: slug } }}
-              locale={locale as "en" | "ar"}
-              className="group flex aspect-square flex-col items-center justify-center gap-4 rounded-2xl p-5 text-center transition-all duration-200 hover:scale-[1.03] hover:shadow-lg"
-              style={{
-                backgroundColor: `var(--color-cat-${colorKey}-soft)`,
-              }}
-            >
-              <span
-                className="flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-110"
-                style={{
-                  backgroundColor: `var(--color-cat-${colorKey})`,
-                  color: "white",
-                }}
+          {rootCats.map(({ slug, name }, i) => {
+            const config    = SLUG_CONFIG[slug];
+            const colorKey  = config?.colorKey ?? FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+            const Icon      = config?.Icon      ?? ShoppingBag;
+
+            return (
+              <Link
+                key={slug}
+                href={`/category/${slug}` as any}
+                locale={locale as "en" | "ar"}
+                className="group flex aspect-square flex-col items-center justify-center gap-4 rounded-2xl p-5 text-center transition-all duration-200 hover:scale-[1.03] hover:shadow-lg"
+                style={{ backgroundColor: `var(--color-cat-${colorKey}-soft)` }}
               >
-                <Icon className="h-7 w-7" strokeWidth={1.5} />
-              </span>
-              <span
-                className="text-sm font-bold tracking-tight"
-                style={{ color: `var(--color-cat-${colorKey})` }}
-              >
-                {t(`categories.${key}`)}
-              </span>
-            </Link>
-          ))}
+                <span
+                  className="flex h-14 w-14 items-center justify-center rounded-2xl transition-transform duration-200 group-hover:scale-110"
+                  style={{ backgroundColor: `var(--color-cat-${colorKey})`, color: "white" }}
+                >
+                  <Icon className="h-7 w-7" strokeWidth={1.5} />
+                </span>
+                <span
+                  className="text-sm font-bold tracking-tight"
+                  style={{ color: `var(--color-cat-${colorKey})` }}
+                >
+                  {name}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

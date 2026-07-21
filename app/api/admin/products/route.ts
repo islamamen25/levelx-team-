@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@supabase/supabase-js";
 import { rateLimit, rateLimitHeaders, getClientId } from "@/lib/rate-limit";
+import { requireAdmin } from "@/lib/supabase/require-admin";
 
 // Rate limits: read ops are generous (browsing), writes are strict
 const RL_READ  = { limit: 60, windowMs: 60_000 } as const;   // 60 GET/min
 const RL_WRITE = { limit: 20, windowMs: 60_000 } as const;   // 20 POST|PATCH|DELETE/min
-
-// ── Supabase service client (server-side only) ────────────────────────────────
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // ── Zod Schemas (AI-agent ready — strict, fully typed) ────────────────────────
 
@@ -53,6 +47,11 @@ function apiError(message: string, status = 400, details?: unknown) {
 export async function GET(req: NextRequest) {
   const rl = rateLimit(`products:read:${getClientId(req)}`, RL_READ);
   if (!rl.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rl) });
+
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const { supabase } = auth;
+
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search") ?? "";
   const category = searchParams.get("category") ?? "";
@@ -101,6 +100,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const rl = rateLimit(`products:write:${getClientId(req)}`, RL_WRITE);
   if (!rl.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rl) });
+
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const { supabase } = auth;
+
   let body: unknown;
   try {
     body = await req.json();
@@ -115,10 +119,11 @@ export async function POST(req: NextRequest) {
 
   const { variants, ...productData } = parsed.data;
 
-  // Insert product
+  // Insert product (cast JSONB fields to satisfy Supabase Json type)
   const { data: product, error: productError } = await supabase
     .from("products")
-    .insert(productData)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .insert(productData as any)
     .select()
     .single();
 
@@ -151,6 +156,11 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const rl = rateLimit(`products:write:${getClientId(req)}`, RL_WRITE);
   if (!rl.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rl) });
+
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const { supabase } = auth;
+
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return apiError("Missing product id");
 
@@ -172,7 +182,8 @@ export async function PATCH(req: NextRequest) {
   if (Object.keys(productData).length > 0) {
     const { error } = await supabase
       .from("products")
-      .update(productData)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update(productData as any)
       .eq("id", id);
     if (error) return apiError(error.message, 500);
   }
@@ -200,6 +211,11 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const rl = rateLimit(`products:write:${getClientId(req)}`, RL_WRITE);
   if (!rl.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: rateLimitHeaders(rl) });
+
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const { supabase } = auth;
+
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return apiError("Missing product id");
 

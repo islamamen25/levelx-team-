@@ -16,7 +16,13 @@
  *   MAX_RPM = 20 requests / IP / min
  */
 
-import { PRODUCTS } from "@/lib/mock-products";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/types";
+
+const _supabase = createClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 const SOFT_CAP_TOKENS  =  50_000;
@@ -173,33 +179,59 @@ export function recordAiFailure(ip: string, error: unknown): void {
 // ── Deterministic fallback ────────────────────────────────────────────────────
 /**
  * Returns a non-AI, deterministic product suggestion response.
- * Used when the circuit is OPEN.
+ * Used when the circuit is OPEN. Fetches top products from Supabase.
  * Never throws — always returns a valid UX response.
  */
-export function getAiFallbackResponse(userMessage: string): FallbackResponse {
-  const q   = userMessage.toLowerCase();
-  const all = PRODUCTS;
+export async function getAiFallbackResponse(userMessage: string): Promise<FallbackResponse> {
+  try {
+    const q = userMessage.toLowerCase();
+    const keywords = q.split(/\s+/).filter((w) => w.length > 2);
 
-  // Simple keyword match against product name / brand / category
-  const matched = all.filter((p) => {
-    const hay = `${p.name} ${p.brand} ${p.category}`.toLowerCase();
-    return q.split(/\s+/).some((word) => word.length > 2 && hay.includes(word));
-  });
+    let query = _supabase
+      .from("products")
+      .select("id, name, brand, slug, variants(price, sale_price, condition)")
+      .eq("is_active", true)
+      .limit(10);
 
-  const picks = (matched.length > 0 ? matched : all.slice(0, 3)).slice(0, 3);
+    // Keyword search on name/brand
+    if (keywords.length) {
+      query = query.or(
+        keywords.map((k) => `name.ilike.%${k}%,brand.ilike.%${k}%`).join(",")
+      );
+    }
 
-  const lines = picks.map(
-    (p) =>
-      `• **${p.name}** — from £${Math.min(...p.variants.map((v) => v.price))} ` +
-      `(${p.condition_options.at(-1)?.tier ?? "Good"} condition, ${p.rating}★)`
-  );
+    const { data } = await query;
+    const picks = (data ?? []).slice(0, 3);
 
-  return {
-    role: "assistant",
-    content:
-      `Here are some great refurbished options for you:\n\n${lines.join("\n")}\n\n` +
-      `All devices come with a **1-year warranty** and **30-day free returns**. ` +
-      `Visit our [full catalogue](/products) to see all ${all.length} products.\n\n` +
-      `_Our AI assistant is temporarily unavailable — showing curated recommendations instead._`,
-  };
+    if (picks.length === 0) {
+      return {
+        role: "assistant",
+        content:
+          "I'd love to help! Browse our full [product catalogue](/products) for great refurbished deals.\n\n" +
+          "_Our AI assistant is temporarily unavailable. We'll be back shortly._",
+      };
+    }
+
+    const lines = picks.map((p) => {
+      const variants = (p.variants as { price: number; sale_price: number | null; condition: string }[]) ?? [];
+      const minPrice = variants.length ? Math.min(...variants.map((v) => v.sale_price ?? v.price)) : 0;
+      const topCond  = variants[0]?.condition ?? "Good";
+      return `• **[${p.name}](/products/${p.slug})** — from EGP ${minPrice.toLocaleString()} (${topCond})`;
+    });
+
+    return {
+      role: "assistant",
+      content:
+        `Here are some great refurbished options:\n\n${lines.join("\n")}\n\n` +
+        `All devices come with a **1-year warranty** and **30-day free returns**.\n\n` +
+        `_Our AI assistant is temporarily unavailable — showing curated recommendations instead._`,
+    };
+  } catch {
+    return {
+      role: "assistant",
+      content:
+        "I'd love to help! Browse our full [product catalogue](/products) for great refurbished deals.\n\n" +
+        "_Our AI assistant is temporarily unavailable. We'll be back shortly._",
+    };
+  }
 }

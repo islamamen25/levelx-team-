@@ -2,11 +2,11 @@
 
 import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { MockProduct } from "@/lib/mock-products";
+import type { DbProduct, DbVariant } from "@/lib/supabase";
 import { ProductCard } from "@/components/plp/product-card";
 
 interface FeaturedCarouselProps {
-  deals: MockProduct[];
+  deals: { product: DbProduct; variants: DbVariant[] }[];
   locale: string;
   title: string;
 }
@@ -32,7 +32,6 @@ export function FeaturedCarousel({ deals, locale, title }: FeaturedCarouselProps
 
   return (
     <div className="relative">
-      {/* Header: title left + nav arrows right */}
       <div className="mb-6 flex items-center justify-between">
         <h2
           id="featured-title"
@@ -41,8 +40,6 @@ export function FeaturedCarousel({ deals, locale, title }: FeaturedCarouselProps
         >
           {title}
         </h2>
-
-        {/* Nav arrows — hidden on mobile */}
         <div className="hidden items-center gap-2 md:flex">
           <button
             type="button"
@@ -71,9 +68,9 @@ export function FeaturedCarousel({ deals, locale, title }: FeaturedCarouselProps
         className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <div className="flex gap-3" style={{ width: "max-content" }}>
-          {deals.map((product) => (
+          {deals.map(({ product, variants }) => (
             <div key={product.id} className="w-[220px] flex-shrink-0 lg:w-[240px]">
-              <ProductCard product={product} locale={locale} />
+              <ProductCard product={product} variants={variants} locale={locale} />
             </div>
           ))}
         </div>

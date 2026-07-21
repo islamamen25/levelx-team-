@@ -1,42 +1,40 @@
+/**
+ * lib/tools/search-products.ts — AI SDK v6 tool: semantic product search
+ * ─────────────────────────────────────────────────────────────────────────────
+ * The chat agent calls this tool to satisfy a user's shopping intent. It hands
+ * the natural-language intent to Meilisearch + text-embedding-3-small (see
+ * lib/meilisearch.ts) so "cheap laptop for college" returns laptops by meaning,
+ * not keyword overlap.
+ */
+
 import { tool } from "ai";
 import { z } from "zod";
-import { PRODUCTS } from "@/lib/mock-products";
+import { vectorSearchProducts } from "@/lib/meilisearch";
 
 export const searchProductsTool = tool({
-  description: "Search for refurbished electronics products by query, category, or price",
+  description:
+    "Search the LevelX catalogue for refurbished electronics using semantic intent. " +
+    "Pass the user's natural-language need (e.g. 'gaming phone under 1000', " +
+    "'lightweight laptop for design students'); the engine does the matching.",
   inputSchema: z.object({
-    query: z.string().describe("Search query (product name, brand, or type)"),
-    category: z.string().optional().describe("Filter by category: Smartphones, Laptops, Tablets, Consoles, Smartwatches, Headphones"),
-    maxPrice: z.number().optional().describe("Maximum price in GBP"),
+    intent: z
+      .string()
+      .min(2)
+      .max(500)
+      .describe('Semantic intent of the shopper, e.g. "gaming phone under EGP 20000"'),
+    maxPrice: z
+      .number()
+      .positive()
+      .optional()
+      .describe("Optional EGP price ceiling extracted from the user's message"),
+    category: z
+      .string()
+      .optional()
+      .describe(
+        "Optional category UUID or slug filter (e.g. mobile, gaming, computing, smart-devices, car-accessories)"
+      ),
   }),
-  execute: async ({ query, category, maxPrice }) => {
-    const q = query.toLowerCase();
-
-    const results = PRODUCTS.filter((p) => {
-      const text = `${p.name} ${p.brand} ${p.category}`.toLowerCase();
-      if (!text.includes(q) && q !== "all") return false;
-      if (category && p.category.toLowerCase() !== category.toLowerCase()) return false;
-      const cheapest = Math.min(...p.variants.map((v) => v.price));
-      if (maxPrice && cheapest > maxPrice) return false;
-      return true;
-    }).map((p) => {
-      const cheapest = p.variants.reduce((a, b) => (a.price < b.price ? a : b));
-      return {
-        id: p.id,
-        slug: p.slug,
-        name: p.name,
-        brand: p.brand,
-        category: p.category,
-        price: cheapest.price,
-        originalPrice: cheapest.original_price,
-        rating: p.rating,
-        reviewCount: p.review_count,
-      };
-    });
-
-    return {
-      count: results.length,
-      products: results.slice(0, 5),
-    };
+  execute: async ({ intent, maxPrice, category }) => {
+    return vectorSearchProducts(intent, { maxPrice, category, limit: 5 });
   },
 });

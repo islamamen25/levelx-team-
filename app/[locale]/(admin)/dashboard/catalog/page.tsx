@@ -1,7 +1,8 @@
-import { getTranslations } from "next-intl/server";
+import { connection } from "next/server";
 import { Package, TrendingUp, AlertTriangle, Tags } from "lucide-react";
 import { ProductTable } from "@/components/admin/product-table";
-import { PRODUCTS } from "@/lib/mock-products";
+import { getProductsAdmin } from "@/lib/queries/products";
+import { getAllCategoriesAdmin } from "@/lib/queries/categories";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -15,33 +16,41 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function CatalogPage({ params }: Props) {
+  await connection();
   const { locale } = await params;
 
-  // Summary stats from mock data (will come from Supabase when wired)
-  const totalProducts  = PRODUCTS.length;
-  const totalStock     = PRODUCTS.reduce((s, p) => s + p.variants.reduce((vs, v) => vs + v.stock, 0), 0);
-  const lowStock       = PRODUCTS.filter((p) => p.variants.reduce((s, v) => s + v.stock, 0) < 5).length;
-  const totalVariants  = PRODUCTS.reduce((s, p) => s + p.variants.length, 0);
+  const [rows, dbCategories] = await Promise.all([
+    getProductsAdmin(),
+    getAllCategoriesAdmin(),
+  ]);
+
+  const categories = dbCategories.map((c) => ({ id: c.id, name: c.name }));
+
+  // Stats from real data
+  const totalProducts = rows.length;
+  const totalStock    = rows.reduce((s, r) => s + r.variants.reduce((vs, v) => vs + v.stock_quantity, 0), 0);
+  const lowStock      = rows.filter((r) => r.variants.reduce((s, v) => s + v.stock_quantity, 0) < 5).length;
+  const totalVariants = rows.reduce((s, r) => s + r.variants.length, 0);
 
   const stats = [
-    { label: locale === "ar" ? "إجمالي المنتجات" : "Total Products",  value: totalProducts,            icon: Package,      color: "bg-blue-50 text-blue-600" },
-    { label: locale === "ar" ? "إجمالي المخزون"  : "Units in Stock",  value: totalStock.toLocaleString(), icon: TrendingUp, color: "bg-emerald-50 text-emerald-600" },
-    { label: locale === "ar" ? "مخزون منخفض"    : "Low Stock Items",  value: lowStock,                 icon: AlertTriangle, color: "bg-amber-50 text-amber-600" },
-    { label: locale === "ar" ? "المتغيرات"       : "Total Variants",   value: totalVariants,            icon: Tags,         color: "bg-violet-50 text-violet-600" },
+    { label: locale === "ar" ? "إجمالي المنتجات" : "Total Products",  value: totalProducts,              icon: Package,       color: "bg-blue-50 text-blue-600" },
+    { label: locale === "ar" ? "إجمالي المخزون"  : "Units in Stock",  value: totalStock.toLocaleString(), icon: TrendingUp,    color: "bg-emerald-50 text-emerald-600" },
+    { label: locale === "ar" ? "مخزون منخفض"    : "Low Stock Items",  value: lowStock,                   icon: AlertTriangle, color: "bg-amber-50 text-amber-600" },
+    { label: locale === "ar" ? "المتغيرات"       : "Total Variants",   value: totalVariants,              icon: Tags,          color: "bg-violet-50 text-violet-600" },
   ];
 
   return (
     <div className="min-h-screen bg-white pt-[6.5rem]">
       <div className="container-px mx-auto py-8 md:py-12">
 
-        {/* ── Page Header ── */}
+        {/* Page Header */}
         <div className="mb-8 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-mint)] mb-1">
               {locale === "ar" ? "لوحة التحكم" : "Admin PIM"}
             </p>
-            <h1 className="text-display-lg text-[var(--color-ceramic)]"
-              style={{ fontSize: "clamp(1.5rem, 3vw, 2.25rem)" }}>
+            <h1 className="text-[var(--color-ceramic)]"
+              style={{ fontSize: "clamp(1.5rem, 3vw, 2.25rem)", fontWeight: 800 }}>
               {locale === "ar" ? "كتالوج المنتجات" : "Product Catalog"}
             </h1>
             <p className="mt-1 text-sm text-[var(--color-slate)]">
@@ -52,7 +61,7 @@ export default async function CatalogPage({ params }: Props) {
           </div>
         </div>
 
-        {/* ── Bento Stats Grid ── */}
+        {/* Bento Stats Grid */}
         <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
           {stats.map((stat) => {
             const Icon = stat.icon;
@@ -75,21 +84,19 @@ export default async function CatalogPage({ params }: Props) {
           })}
         </div>
 
-        {/* ── Product Table ── */}
+        {/* Product Table */}
         <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-[var(--color-ceramic)]">
-                {locale === "ar" ? "جميع المنتجات" : "All Products"}
-              </h2>
-              <p className="text-xs text-[var(--color-slate)] mt-0.5">
-                {locale === "ar"
-                  ? "ابحث وصفّي وعدّل المنتجات"
-                  : "Search, filter, sort and manage your catalogue"}
-              </p>
-            </div>
+          <div className="mb-5">
+            <h2 className="text-base font-bold text-[var(--color-ceramic)]">
+              {locale === "ar" ? "جميع المنتجات" : "All Products"}
+            </h2>
+            <p className="text-xs text-[var(--color-slate)] mt-0.5">
+              {locale === "ar"
+                ? "ابحث وصفّي وعدّل المنتجات"
+                : "Search, filter, sort and manage your catalogue"}
+            </p>
           </div>
-          <ProductTable />
+          <ProductTable initialProducts={rows} categories={categories} />
         </div>
 
       </div>

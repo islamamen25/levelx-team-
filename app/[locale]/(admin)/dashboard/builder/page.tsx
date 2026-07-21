@@ -1,5 +1,7 @@
+import { connection } from "next/server";
 import { Paintbrush } from "lucide-react";
 import { BuilderClient } from "@/components/admin/builder-client";
+import { getStoreConfig } from "@/lib/store-config";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -12,51 +14,8 @@ export async function generateMetadata({ params }: Props) {
   };
 }
 
-// ── Default config (fallback if Supabase fetch fails or is empty) ─────────────
-const DEFAULT_CONFIG = {
-  theme: {
-    primary:   "#00A699",
-    secondary: "#1D1D1F",
-    accent:    "#F5A623",
-    surface:   "#FFFFFF",
-    radius:    "0.75rem",
-  },
-  layout: [
-    { id: "hero",        label: "Hero Slider",       visible: true,  order: 0 },
-    { id: "categories",  label: "Category Tiles",    visible: true,  order: 1 },
-    { id: "featured",    label: "Featured Products", visible: true,  order: 2 },
-    { id: "bestsellers", label: "Bestsellers",       visible: true,  order: 3 },
-    { id: "brands",      label: "Top Brands",        visible: true,  order: 4 },
-    { id: "newsletter",  label: "Newsletter",        visible: true,  order: 5 },
-    { id: "trust",       label: "Trust Banner",      visible: true,  order: 6 },
-  ],
-};
-
-async function getStoreConfig() {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/store_configuration?id=eq.1&select=theme,layout`,
-      {
-        headers: {
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-        },
-        cache: "no-store",
-      }
-    );
-    if (!res.ok) return DEFAULT_CONFIG;
-    const rows = await res.json();
-    if (!rows?.[0]) return DEFAULT_CONFIG;
-    return {
-      theme:  rows[0].theme  ?? DEFAULT_CONFIG.theme,
-      layout: rows[0].layout ?? DEFAULT_CONFIG.layout,
-    };
-  } catch {
-    return DEFAULT_CONFIG;
-  }
-}
-
 export default async function BuilderPage({ params }: Props) {
+  await connection();
   const { locale } = await params;
   const initial = await getStoreConfig();
 
