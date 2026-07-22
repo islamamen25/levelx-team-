@@ -10,6 +10,7 @@ import { Footer } from "@/components/layout/footer";
 import { SmoothScroll } from "@/components/providers/smooth-scroll";
 import { ChatWidget } from "@/components/chat/chat-widget";
 import { getStoreConfig, buildThemeCSS } from "@/lib/store-config";
+import { getCategoryTree } from "@/lib/queries/categories";
 import "../globals.css";
 
 const inter = Inter({
@@ -51,9 +52,10 @@ export default async function LocaleLayout({ children, params }: Props) {
   // يُمكّن static rendering في next-intl بدون قراءة request headers
   setRequestLocale(locale);
 
-  const [messages, storeConfig] = await Promise.all([
+  const [messages, storeConfig, categories] = await Promise.all([
     getMessages({ locale }),
     getStoreConfig(),
+    getCategoryTree(),
   ]);
 
   const dir      = locale === "ar" ? "rtl" : "ltr";
@@ -78,7 +80,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       >
         <NextIntlClientProvider messages={messages}>
           <SmoothScroll>
-            <Navbar locale={locale} />
+            <Navbar locale={locale} categories={categories} />
             <main className="flex-1">
               <Suspense fallback={null}>{children}</Suspense>
             </main>

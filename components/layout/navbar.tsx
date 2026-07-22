@@ -8,10 +8,12 @@ import { useScrolled } from "@/hooks/use-scrolled";
 import { Search, ShoppingBag, User, Menu, X, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { CategoryBar } from "@/components/layout/category-bar";
+import type { CategoryNode } from "@/lib/queries/categories";
 import { useCartStore } from "@/lib/cart-store";
 
 interface NavbarProps {
   locale: string;
+  categories: CategoryNode[];
 }
 
 const NAV_LINKS = [
@@ -21,7 +23,7 @@ const NAV_LINKS = [
   { key: "about" as const, href: "/about" },
 ] as const;
 
-export function Navbar({ locale }: NavbarProps) {
+export function Navbar({ locale, categories }: NavbarProps) {
   const t = useTranslations("nav");
   const tc = useTranslations("common");
   const scrolled = useScrolled(8);
@@ -141,7 +143,7 @@ export function Navbar({ locale }: NavbarProps) {
 
       {/* ── Row 2: Category bar (desktop only) ── */}
       <div className="hidden md:block">
-        <CategoryBar locale={locale} />
+        <CategoryBar locale={locale} categories={categories} />
       </div>
 
       {/* ── Mobile Sheet ── */}
