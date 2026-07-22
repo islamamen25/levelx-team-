@@ -1,4 +1,5 @@
 import { login } from "./actions";
+import { ForgotPassword } from "@/components/auth/forgot-password";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -74,6 +75,10 @@ export default async function LoginPage({ params, searchParams }: Props) {
             {locale === "ar" ? "دخول" : "Sign in"}
           </button>
         </form>
+
+        <div className="flex flex-col items-center">
+          <ForgotPassword locale={locale} />
+        </div>
       </div>
     </div>
   );
