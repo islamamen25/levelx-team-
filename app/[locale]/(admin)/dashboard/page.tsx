@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { Package, Paintbrush, ArrowRight } from "lucide-react";
+import { Package, Paintbrush, FolderTree, ArrowRight } from "lucide-react";
 import { KpiCard } from "@/components/admin/kpi-card";
 import { DashboardCharts } from "@/components/admin/dashboard-charts";
 import { KPI_DATA } from "@/lib/mock-dashboard";
@@ -57,7 +57,7 @@ export default async function DashboardPage({ params }: Props) {
         <DashboardCharts locale={locale} periodLabels={periodLabels} />
 
         {/* Quick Nav */}
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
             {
               href:  `/${locale}/dashboard/catalog`,
@@ -65,6 +65,13 @@ export default async function DashboardPage({ params }: Props) {
               title: locale === "ar" ? "كتالوج المنتجات" : "Product Catalog",
               desc:  locale === "ar" ? "إدارة المنتجات والمتغيرات والعروض" : "Manage products, variants, conditions & offers",
               color: "bg-blue-50 text-blue-600",
+            },
+            {
+              href:  `/${locale}/dashboard/categories`,
+              icon:  FolderTree,
+              title: locale === "ar" ? "الأقسام" : "Categories",
+              desc:  locale === "ar" ? "إضافة وتعديل وإخفاء أقسام المتجر" : "Add, edit, reorder & hide store categories",
+              color: "bg-emerald-50 text-emerald-600",
             },
             {
               href:  `/${locale}/dashboard/builder`,
