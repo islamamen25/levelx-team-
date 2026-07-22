@@ -86,9 +86,11 @@ interface ProductFormProps {
   onClose: () => void;
   onSaved: () => void;
   categories?: { id: string; name: string }[];
+  /** Render for a full page instead of a dialog: no height cap, back arrow instead of X. */
+  fullPage?: boolean;
 }
 
-export function ProductForm({ product, variants, onClose, onSaved, categories = [] }: ProductFormProps) {
+export function ProductForm({ product, variants, onClose, onSaved, categories = [], fullPage = false }: ProductFormProps) {
   const [form, setForm] = useState<FormState>(() => initForm(product, variants));
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -211,7 +213,7 @@ export function ProductForm({ product, variants, onClose, onSaved, categories = 
       </div>
 
       {/* Tabs */}
-      <div className="px-6 pt-4 pb-6 overflow-y-auto max-h-[70vh]">
+      <div className={fullPage ? "px-6 pt-4 pb-6" : "px-6 pt-4 pb-6 overflow-y-auto max-h-[70vh]"}>
         <Tabs defaultValue="basic">
           <TabsList className="mb-5 bg-[var(--color-obsidian)] rounded-xl p-1 h-auto gap-1">
             {[

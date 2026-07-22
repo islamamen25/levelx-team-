@@ -96,7 +96,7 @@ export default async function CatalogPage({ params }: Props) {
                 : "Search, filter, sort and manage your catalogue"}
             </p>
           </div>
-          <ProductTable initialProducts={rows} categories={categories} />
+          <ProductTable initialProducts={rows} categories={categories} locale={locale} />
         </div>
 
       </div>

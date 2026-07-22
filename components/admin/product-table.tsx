@@ -9,7 +9,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ProductForm } from "@/components/admin/product-form";
 import type { DbProduct, DbVariant, ProductCondition } from "@/lib/supabase";
 
 const CONDITION_STYLES: Record<ProductCondition, string> = {
@@ -29,6 +28,7 @@ type Row = { product: DbProduct; variants: DbVariant[] };
 interface ProductTableProps {
   initialProducts: Row[];
   categories: { id: string; name: string }[];
+  locale: string;
 }
 
 function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: SortDir }) {
@@ -54,15 +54,13 @@ function topCondition(variants: DbVariant[]): ProductCondition {
   return "Good";
 }
 
-export function ProductTable({ initialProducts, categories }: ProductTableProps) {
+export function ProductTable({ initialProducts, categories, locale }: ProductTableProps) {
   const router = useRouter();
 
   const [search, setSearch]         = useState("");
   const [categoryFilter, setCat]    = useState("All");
   const [sortField, setSortField]   = useState<SortField>("name");
   const [sortDir, setSortDir]       = useState<SortDir>("asc");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editRow, setEditRow]       = useState<Row | undefined>();
   const [deleteId, setDeleteId]     = useState<string | null>(null);
   const [deleting, setDeleting]     = useState(false);
 
@@ -113,8 +111,9 @@ export function ProductTable({ initialProducts, categories }: ProductTableProps)
     if (res.ok) router.refresh();
   };
 
-  const openAdd  = () => { setEditRow(undefined); setDialogOpen(true); };
-  const openEdit = (row: Row) => { setEditRow(row); setDialogOpen(true); };
+  // Add/edit live on their own pages so there is room for the full form.
+  const openAdd  = () => router.push(`/${locale}/dashboard/catalog/new`);
+  const openEdit = (row: Row) => router.push(`/${locale}/dashboard/catalog/edit?id=${row.product.id}`);
 
   const categoryName = (id: string | null) =>
     categories.find((c) => c.id === id)?.name ?? "—";
@@ -286,18 +285,7 @@ export function ProductTable({ initialProducts, categories }: ProductTableProps)
         </Table>
       </div>
 
-      {/* Add / Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl p-0 rounded-2xl overflow-hidden gap-0 border-gray-100">
-          <ProductForm
-            product={editRow?.product}
-            variants={editRow?.variants}
-            onClose={() => setDialogOpen(false)}
-            onSaved={() => router.refresh()}
-            categories={categories}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Add / Edit now navigate to their own full pages — see openAdd/openEdit */}
 
       {/* Delete Confirm Dialog */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
