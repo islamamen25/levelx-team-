@@ -1,5 +1,6 @@
-'use cache';
-
+// NOTE: no file-level 'use cache' — each cached function opts in itself.
+// getProductsAdmin() must stay uncached because it reads cookies() for the
+// admin session, which is not allowed inside a cache scope.
 import { cacheLife, cacheTag } from "next/cache";
 import { createSupabasePublicClient, createSupabaseServerClient } from "@/lib/supabase/server";
 import type { DbProduct, DbVariant } from "@/lib/supabase";
