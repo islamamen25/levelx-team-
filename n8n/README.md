@@ -1,77 +1,125 @@
 # TEKDOM — Amazon → Supabase Auto Data Entry (n8n)
 
-أتمتة إدخال المنتجات: **Excel (اسم + سيريال) → Apify scraping من amazon.eg → معالجة صور → Supabase**.
+أتمتة إدخال المنتجات: **Excel على Google Drive → إثراء البيانات → مراجعة على تيليجرام → Supabase**.
 
-ملف الـ workflow: [`amazon-data-entry.workflow.json`](./amazon-data-entry.workflow.json)
-
----
-
-## التدفّق (Flow)
-
-```
-Upload Excel (Form)
-  → Parse Excel (xlsx → rows)
-  → Normalize Rows (name + serial)
-  → Loop Products (واحد واحد)
-       → Build Search URL  (https://www.amazon.eg/s?k=<name>)
-       → Apify: Scrape Amazon  (junglee/Amazon-crawler, أول نتيجة)
-       → Map Amazon Product  (title, brand, description, specs, images, asin)
-       → Has Images?
-            true  → Split Images → Download → Resize(1000px/JPEG) → Upload to Storage → Collect URLs ─┐
-            false ─────────────────────────────────────────────────────────────────────────────────┤
-       → Insert Product   (products,    return=representation → id)
-       → Insert Variant   (variants,    product_id=id, price=0, condition='Good')
-       → Insert Serial    (serial_items, variant_id=id, serial_number)
-       → (loop) → Loop Products
-```
+> **الحالة:** 🟢 يعمل — الاثنان مُفعّلان على `https://n8n.islamai.shop`.
+> **آخر تحقّق:** 2026-07-22 عبر n8n API.
 
 ---
 
-## الإعداد قبل التشغيل
+## الـ Workflows
 
-### 1) الاستيراد
-n8n → **Workflows → Import from File** → اختَر `amazon-data-entry.workflow.json`.
+الـ pipeline مقسوم إلى اثنين (كان workflow واحداً بـ 54 عقدة وتم تقسيمه):
 
-> ملاحظة: الـ n8n instance (`n8n.srv1344298.hstgr.cloud`) رجّعت 404 وقت البناء — لو الـ API اتفعّل نقدر نعمل push/تشغيل مباشرة بدل الاستيراد اليدوي.
+| # | الاسم | ID | العقد | الدور |
+|---|---|---|---|---|
+| 1 | **TEKDOM 1 - Intake & Enrichment** | `UfpZ0BYZ05ua4S1A` | 41 | يلتقط الملفات، يثري البيانات، يرسل للمراجعة |
+| 2 | **TEKDOM 2 - DB Writer** | `Z4iopTC6qSTmtlSh` | 20 | يكتب في Supabase فقط |
+| — | ~~TEKDOM القديم (monolith)~~ | `Q1LKEh5okGIThDbh` | 54 | **مؤرشف** — لا تستخدمه |
 
-### 2) الـ Credentials (لازم تتظبط بعد الاستيراد)
+TEKDOM 1 يستدعي TEKDOM 2 عبر عقدة `Execute Workflow`، فالكتابة في قاعدة البيانات معزولة ويمكن اختبارها وحدها.
 
-| Credential | النوع | القيمة |
+> ⚠️ **لا يوجد ملف workflow محلي بعد الآن.** المصدر الوحيد للحقيقة هو الـ instance نفسه.
+> النسخة القديمة (`amazon-data-entry.workflow.json`) حُذفت لأنها كانت متجاوَزة تماماً واستيرادها كان سينشئ تكراراً.
+
+---
+
+## TEKDOM 1 — التدفّق
+
+```
+Every Minute (Schedule)
+  → List Drive Folder → Filter XLSX Files
+  → Lock File (rename → DONE_)        ← يمنع المعالجة المزدوجة
+  → Download Excel → Parse Excel → Normalize Rows
+  → Loop Products ──────────────────────────────► Move to Processed Folder → All Done
+       │
+       ├─ Barcode Lookup (UPCitemdb) → Map Amazon Product
+       ├─ Google Image Search → Merge Google Images
+       ├─ Has Images?
+       │     نعم → Split → Download → Resize → Upload to Supabase Storage → Collect URLs
+       │
+       ├─ Prepare Telegram Message → Send Images Album → Send Telegram Review
+       └─ Check Approval
+             ✅ موافق  → Build DB Payload → Call DB Writer (TEKDOM 2)
+             ❌ مرفوض → Lookup by Barcode → Has Barcode Data?
+                          نعم → Prepare Second Review ─┐
+                          لا  → Google Search → Extract Official URL
+                                 → Scrape Official Site → Map Official Data ─┤
+                                                                              ▼
+                                              Send Second Review → Check Second Approval
+                                                 ✅ → Build DB Payload 2 → Call DB Writer (2nd)
+                                                 ❌ → رجوع إلى Loop Products (تخطّي)
+```
+
+**فكرة التصميم:** لا شيء يدخل قاعدة البيانات قبل موافقتك على تيليجرام. لو رُفض المنتج، النظام يحاول إثراءه من مصدر آخر (باركود ← بحث Google ← الموقع الرسمي) ويعرضه عليك ثانيةً.
+
+---
+
+## TEKDOM 2 — التدفّق
+
+```
+When Called (Execute Workflow Trigger)
+  → Product Data → Insert Product → Get Existing Product
+  → Link Product Categories
+  → Insert Translation AR
+  → Check ASIN Valid
+        صالح → Apify: Scrape Amazon EN → Map Amazon Product EN → Insert Translation EN
+  → Delete Old Product Images → Prepare Product Images → Insert Product Images
+  → Prepare Variant Data → Insert Variant → Get Existing Variant
+  → Has Serials?
+        نعم → Prepare Serial Data → Insert Serial Item
+  → Done
+```
+
+**نموذج ثنائي اللغة:** الوصف العربي من `amazon.eg`، والإنجليزي يُجلب بالـ ASIN من `amazon.com` — كلاهما في جدول `product_translations`.
+
+---
+
+## الـ Credentials المطلوبة
+
+| Credential | النوع | يُستخدم في |
 |---|---|---|
-| **Apify Bearer Token** | Header Auth | Name: `Authorization` · Value: `Bearer apify_api_XXXX` |
-| **Supabase Service Role** | Supabase API | Host: `https://xeylyyfmcucphggqwxdv.supabase.co` · Service Role Key: `eyJ...` (من Supabase → Settings → API) |
+| **Google Drive** | OAuth2 | List / Lock / Download (TEKDOM 1) |
+| **Telegram Bot** | Telegram API | المراجعتان (TEKDOM 1) |
+| **Apify** | Header Auth — `Authorization: Bearer apify_api_XXXX` | Scrape Amazon EN (TEKDOM 2) |
+| **Supabase service_role** | Header Auth | رفع الصور + كل عمليات الإدخال |
 
-تُستخدم نفس Supabase credential في 4 نودات (Storage + 3 inserts). الـ **service_role** بيتخطّى الـ RLS، فالإدخال الآلي بيشتغل من غير تسجيل دخول.
+الـ **service_role** يتخطّى RLS، فالإدخال الآلي يعمل بلا تسجيل دخول. **لا تضع هذا المفتاح في أي كود frontend.**
 
-### 3) Storage bucket
-اتأكد إن bucket باسم **`product-images`** موجود و **public**:
+---
+
+## المتطلبات
+
+### Storage bucket
 ```sql
 insert into storage.buckets (id, name, public)
 values ('product-images', 'product-images', true)
 on conflict do nothing;
 ```
 
-### 4) شكل ملف الـ Excel
-عمودان (الأسماء مرنة — بيدعم عربي/إنجليزي):
+### مجلدا Google Drive
+- مجلد الإدخال (يراقبه الـ Schedule كل دقيقة)
+- **"TEKDOM - Processed"** — تُنقل إليه الملفات بعد المعالجة (لا تُحذف أبداً)
 
+### شكل ملف Excel
 | name (اسم المنتج) | serial (سيريال) |
 |---|---|
 | iPhone 14 Pro 256GB | SN-ABC-001 |
-| Samsung Galaxy S23 | SN-XYZ-777 |
+
+الأعمدة مرنة وتدعم العربية والإنجليزية.
 
 ---
 
 ## ملاحظات مهمة
 
-- **السعر = 0** و **condition = 'Good'** افتراضيًا (حسب اختيارك). عدّلهم يدويًا من الأدمن بعد الإدخال، أو غيّر القيم في نود `Insert Variant`.
-- **`is_serialized = true`** لكل منتج (لأن كل صف معاه سيريال).
-- **`sku_code` = ASIN** و **`serial_number`** كلاهما `unique` في الـ DB → إعادة تشغيل نفس الصف هتفشل بـ 409 (متوقّع). لو عايز re-run آمن نضيف upsert/dedup.
-- **اللي مالوش نتيجة على أمازون**: حاليًا بيكمل بصف فاضٍ جزئيًا. ممكن نضيف نود فلترة (skip لو مفيش `asin`).
-- معالجة الصور: تصغير لأقصى 1000×1000 + تحويل JPEG جودة 82، ورفع لـ `product-images/<ASIN>/<index>.jpg`.
+- **السعر = 0** و **condition = 'Good'** افتراضياً — عدّلهما من لوحة التحكم (`/dashboard/catalog`) بعد الإدخال.
+- **`sku_code` (ASIN) و `serial_number`** كلاهما `unique` → إعادة تشغيل نفس الصف تفشل بـ 409 (سلوك متوقّع).
+- **قفل الملف** بإعادة التسمية إلى `DONE_` ضروري لأن الـ Schedule يعمل كل دقيقة — بدونه يُعالج الملف مرتين.
+- **استخراج الصور** يستخدم Set لإزالة التكرار — **لا** تستخدم نمط `arr1 || arr2`.
+- عقدتا `sendAndWait` تحتاجان `responseType: "approval"` وإلا لن تظهر أزرار الموافقة.
 
-## أفكار تحسين (اختياري)
+## غير مُفعّل حالياً
 
-- **Dedup** قبل الإدخال: GET `/rest/v1/products?slug=eq.<slug>` وتخطّي الموجود.
-- **Error workflow** + إعادة محاولة على نودات الـ HTTP.
-- **Meilisearch reseed** في الآخر (`scripts/seed-meilisearch.ts`) عشان المنتجات الجديدة تظهر في البحث.
-- ربط **category_id** تلقائيًا من تصنيف أمازون.
+- **`app.n8n_webhook_url` / `app.n8n_webhook_secret`** في Postgres غير مضبوطين، فمُشغّل `trg_category_visibility` (إشعار n8n عند إخفاء قسم) لا يرسل شيئاً.
+  هذا **مقصود**: لوحة التحكم تستدعي `revalidateTag` مباشرة داخل `/api/admin/categories`، فالكاش يتحدّث فوراً بدون n8n.
+- **Meilisearch reseed** بعد الإدخال (`scripts/seed-meilisearch.ts`) — فكرة تحسين لم تُنفَّذ.
