@@ -71,28 +71,43 @@ export type Database = {
       }
       categories: {
         Row: {
+          color_key: string | null
           created_at: string
+          display_name: string | null
+          icon: string | null
           id: string
+          in_carousel: boolean
           is_visible: boolean
           name: string
           parent_id: string | null
           slug: string
+          sort_order: number
         }
         Insert: {
+          color_key?: string | null
           created_at?: string
+          display_name?: string | null
+          icon?: string | null
           id?: string
+          in_carousel?: boolean
           is_visible?: boolean
           name: string
           parent_id?: string | null
           slug: string
+          sort_order?: number
         }
         Update: {
+          color_key?: string | null
           created_at?: string
+          display_name?: string | null
+          icon?: string | null
           id?: string
+          in_carousel?: boolean
           is_visible?: boolean
           name?: string
           parent_id?: string | null
           slug?: string
+          sort_order?: number
         }
         Relationships: [
           {

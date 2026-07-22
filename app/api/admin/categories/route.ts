@@ -9,10 +9,16 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const CategorySchema = z.object({
-  name:      z.string().min(1),
-  slug:      z.string().min(1).regex(/^[a-z0-9-]+$/),
-  parent_id: z.string().uuid().nullable().optional(),
-  is_visible:z.boolean().optional(),
+  name:         z.string().min(1),
+  slug:         z.string().min(1).regex(/^[a-z0-9-]+$/),
+  parent_id:    z.string().uuid().nullable().optional(),
+  is_visible:   z.boolean().optional(),
+  // Home page presentation, all admin-controlled
+  in_carousel:  z.boolean().optional(),
+  sort_order:   z.number().int().optional(),
+  icon:         z.string().max(40).nullable().optional(),
+  color_key:    z.string().max(40).nullable().optional(),
+  display_name: z.string().max(60).nullable().optional(),
 });
 
 // في Next.js 16.2 يتطلب revalidateTag الـ profile كـ argument ثانٍ

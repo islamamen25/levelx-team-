@@ -9,24 +9,42 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  CATEGORY_ICON_NAMES,
+  CATEGORY_COLOR_KEYS,
+  resolveIcon,
+} from "@/lib/category-presentation";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface CategoryRow {
-  id:         string;
-  name:       string;
-  slug:       string;
-  parent_id:  string | null;
-  is_visible: boolean;
+  id:            string;
+  name:          string;
+  slug:          string;
+  parent_id:     string | null;
+  is_visible:    boolean;
+  in_carousel:   boolean;
+  sort_order:    number;
+  icon:          string | null;
+  color_key:     string | null;
+  display_name:  string | null;
 }
 
 interface FormState {
-  name:       string;
-  slug:       string;
-  parent_id:  string;
-  is_visible: boolean;
+  name:          string;
+  slug:          string;
+  parent_id:     string;
+  is_visible:    boolean;
+  in_carousel:   boolean;
+  sort_order:    number;
+  icon:          string;
+  color_key:     string;
+  display_name:  string;
 }
 
-const empty = (): FormState => ({ name: "", slug: "", parent_id: "", is_visible: true });
+const empty = (): FormState => ({
+  name: "", slug: "", parent_id: "", is_visible: true,
+  in_carousel: true, sort_order: 0, icon: "", color_key: "", display_name: "",
+});
 
 function toSlug(s: string) {
   return s.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -65,7 +83,17 @@ export default function CategoriesAdminPage() {
 
   const openEdit = (cat: CategoryRow) => {
     setEditId(cat.id);
-    setForm({ name: cat.name, slug: cat.slug, parent_id: cat.parent_id ?? "", is_visible: cat.is_visible });
+    setForm({
+      name:         cat.name,
+      slug:         cat.slug,
+      parent_id:    cat.parent_id ?? "",
+      is_visible:   cat.is_visible,
+      in_carousel:  cat.in_carousel,
+      sort_order:   cat.sort_order,
+      icon:         cat.icon ?? "",
+      color_key:    cat.color_key ?? "",
+      display_name: cat.display_name ?? "",
+    });
     setError(null);
     setOpen(true);
   };
@@ -87,10 +115,15 @@ export default function CategoriesAdminPage() {
     setError(null);
 
     const payload = {
-      name:       form.name,
-      slug:       form.slug || toSlug(form.name),
-      parent_id:  form.parent_id || null,
-      is_visible: form.is_visible,
+      name:         form.name,
+      slug:         form.slug || toSlug(form.name),
+      parent_id:    form.parent_id || null,
+      is_visible:   form.is_visible,
+      in_carousel:  form.in_carousel,
+      sort_order:   Number(form.sort_order) || 0,
+      icon:         form.icon || null,
+      color_key:    form.color_key || null,
+      display_name: form.display_name || null,
     };
 
     const url    = editId ? `/api/admin/categories?id=${editId}` : "/api/admin/categories";
@@ -307,6 +340,99 @@ export default function CategoriesAdminPage() {
                 </div>
                 <span className="text-sm text-[var(--color-ceramic)]">Visible to customers</span>
               </label>
+
+              {/* ── Home page presentation ── */}
+              <div className="space-y-4 rounded-xl border border-gray-100 bg-[var(--color-obsidian)] p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-slate)]">
+                  Home page tile
+                </p>
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div
+                    onClick={() => setForm((f) => ({ ...f, in_carousel: !f.in_carousel }))}
+                    className={`relative h-5 w-9 rounded-full transition-colors ${form.in_carousel ? "bg-[var(--color-mint)]" : "bg-gray-200"}`}
+                  >
+                    <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${form.in_carousel ? "translate-x-4" : "translate-x-0.5"}`} />
+                  </div>
+                  <span className="text-sm text-[var(--color-ceramic)]">Show on home page</span>
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-[var(--color-ceramic)]">Order</Label>
+                    <Input
+                      type="number"
+                      value={form.sort_order}
+                      onChange={(e) => setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))}
+                      className="h-9 text-sm border-gray-200"
+                    />
+                    <p className="text-[10px] text-[var(--color-iron)]">Lower shows first</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-[var(--color-ceramic)]">Short label</Label>
+                    <Input
+                      value={form.display_name}
+                      onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
+                      placeholder={form.name || "same as name"}
+                      className="h-9 text-sm border-gray-200"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-[var(--color-ceramic)]">Icon</Label>
+                    <select
+                      value={form.icon}
+                      onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
+                      className="h-9 w-full rounded-md border border-gray-200 bg-white px-3 text-sm text-[var(--color-ceramic)] focus:outline-none focus:ring-1 focus:ring-[var(--color-mint)]"
+                    >
+                      <option value="">— Default —</option>
+                      {CATEGORY_ICON_NAMES.map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-[var(--color-ceramic)]">Colour</Label>
+                    <select
+                      value={form.color_key}
+                      onChange={(e) => setForm((f) => ({ ...f, color_key: e.target.value }))}
+                      className="h-9 w-full rounded-md border border-gray-200 bg-white px-3 text-sm text-[var(--color-ceramic)] focus:outline-none focus:ring-1 focus:ring-[var(--color-mint)]"
+                    >
+                      <option value="">— Auto —</option>
+                      {CATEGORY_COLOR_KEYS.map((k) => (
+                        <option key={k} value={k}>{k}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Live preview of the tile */}
+                <div className="flex items-center gap-3 pt-1">
+                  <span className="text-[10px] uppercase tracking-wider text-[var(--color-iron)]">Preview</span>
+                  {(() => {
+                    const Icon = resolveIcon(form.icon || null);
+                    const ck   = form.color_key || "smartphones";
+                    return (
+                      <div
+                        className="flex items-center gap-2 rounded-xl px-3 py-2"
+                        style={{ backgroundColor: `var(--color-cat-${ck}-soft)` }}
+                      >
+                        <span
+                          className="flex h-8 w-8 items-center justify-center rounded-lg"
+                          style={{ backgroundColor: `var(--color-cat-${ck})`, color: "white" }}
+                        >
+                          <Icon className="h-4 w-4" strokeWidth={1.5} />
+                        </span>
+                        <span className="text-xs font-bold" style={{ color: `var(--color-cat-${ck})` }}>
+                          {form.display_name || form.name || "Category"}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
 
               {error && (
                 <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-2.5 text-xs text-red-600">

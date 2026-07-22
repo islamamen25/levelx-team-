@@ -23,7 +23,48 @@ export type CategoryRow = {
   slug: string;
   parent_id: string | null;
   is_visible: boolean;
+  in_carousel: boolean;
+  sort_order: number;
+  icon: string | null;
+  color_key: string | null;
+  display_name: string | null;
 };
+
+/** A category as presented in the home page carousel. */
+export type CarouselCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  color_key: string | null;
+};
+
+// Categories the admin picked for the home page carousel, in their order.
+export async function getCarouselCategories(): Promise<CarouselCategory[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("categories");
+
+  const supabase = createSupabasePublicClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug, icon, color_key, display_name")
+    .eq("is_visible", true)
+    .eq("in_carousel", true)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error) throw new Error(`getCarouselCategories: ${error.message}`);
+
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    // display_name lets the admin shorten a long category name for the strip
+    name: c.display_name?.trim() || c.name,
+    slug: c.slug,
+    icon: c.icon,
+    color_key: c.color_key,
+  }));
+}
 
 // شجرة الأقسام المتداخلة — مُخزَّنة لمدة ساعة، قابلة للإبطال بـ tag
 export async function getCategoryTree(): Promise<CategoryNode[]> {
@@ -74,8 +115,9 @@ export async function getAllCategoriesAdmin(): Promise<CategoryRow[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("categories")
-    .select("id, name, slug, parent_id, is_visible")
-    .order("name");
+    .select("id, name, slug, parent_id, is_visible, in_carousel, sort_order, icon, color_key, display_name")
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as CategoryRow[];
 }
