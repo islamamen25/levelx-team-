@@ -86,7 +86,21 @@ const CreateProductSchema = z.object({
   translations: z.array(TranslationSchema).default([]),
 });
 
+// CreateProductSchema.partial() makes every field optional, but a field
+// that also carries .default(...) (images, specs, ai_metadata,
+// is_serialized) still gets its default substituted in whenever the key is
+// merely ABSENT from the request body — Zod applies .default() to
+// `undefined`, and a missing key reads as `undefined` too. On PATCH that
+// silently resets the column to its default (e.g. ai_metadata, which has no
+// UI field in the admin form at all, was getting wiped to {} — including the
+// barcode stored in ai_metadata.ean — on every single save). Re-declare
+// these as plain .optional() with no default so "absent" means "leave this
+// column alone", not "reset it".
 const UpdateProductSchema = CreateProductSchema.partial().extend({
+  is_serialized: z.boolean().optional(),
+  images: z.array(z.string().url()).optional(),
+  specs: z.record(z.string(), z.string()).optional(),
+  ai_metadata: z.record(z.string(), z.unknown()).optional(),
   variants: z.array(VariantSchema).optional(),
   translations: z.array(TranslationSchema).optional(),
 });
