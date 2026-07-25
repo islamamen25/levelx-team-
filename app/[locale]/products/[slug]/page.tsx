@@ -21,8 +21,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props) {
-  const { slug } = await params;
-  const data = await getProductBySlug(slug);
+  const { locale, slug } = await params;
+  const data = await getProductBySlug(slug, locale);
   if (!data) return {};
   const { product } = data;
   return {
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function ProductPage({ params }: Props) {
   const { locale, slug } = await params;
-  const data = await getProductBySlug(slug);
+  const data = await getProductBySlug(slug, locale);
   if (!data) notFound();
 
   const { product, variants } = data;

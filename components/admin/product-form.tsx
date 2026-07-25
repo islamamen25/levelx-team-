@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/lib/supabase";
-import type { DbProduct, DbVariant, ProductCondition } from "@/lib/supabase";
+import type { DbProduct, DbVariant, DbTranslation, ProductCondition } from "@/lib/supabase";
 
 const CONDITIONS: { value: ProductCondition; label: string; desc: string; color: string }[] = [
   { value: "Premium",   label: "Premium",   desc: "Like new, flawless",          color: "bg-violet-100 text-violet-700 border-violet-200" },
@@ -28,6 +28,12 @@ export interface VariantDraft {
   condition: ProductCondition;
 }
 
+interface TranslationDraft {
+  title: string;
+  description: string;
+  specs: { key: string; value: string }[];
+}
+
 interface FormState {
   name: string;
   brand: string;
@@ -37,6 +43,7 @@ interface FormState {
   images: string[];
   specs: { key: string; value: string }[];
   variants: VariantDraft[];
+  translations: { en: TranslationDraft; ar: TranslationDraft };
 }
 
 const defaultVariant = (): VariantDraft => ({
@@ -48,13 +55,36 @@ const defaultVariant = (): VariantDraft => ({
   condition: "Good",
 });
 
-function initForm(product?: DbProduct, variants?: DbVariant[]): FormState {
+const emptyTranslation = (): TranslationDraft => ({
+  title: "",
+  description: "",
+  specs: [{ key: "", value: "" }],
+});
+
+function translationToDraft(t?: DbTranslation): TranslationDraft {
+  if (!t) return emptyTranslation();
+  const specs = Object.entries((t.specs as Record<string, string>) ?? {}).map(
+    ([key, value]) => ({ key, value })
+  );
+  return {
+    title: t.title ?? "",
+    description: t.description ?? "",
+    specs: specs.length ? specs : [{ key: "", value: "" }],
+  };
+}
+
+function initForm(product?: DbProduct, variants?: DbVariant[], translations?: DbTranslation[]): FormState {
+  const translationState = {
+    en: translationToDraft(translations?.find((t) => t.lang === "en")),
+    ar: translationToDraft(translations?.find((t) => t.lang === "ar")),
+  };
   if (!product) {
     return {
       name: "", brand: "", slug: "", description: "", categoryId: "",
       images: [],
       specs: [{ key: "", value: "" }],
       variants: [defaultVariant()],
+      translations: translationState,
     };
   }
   return {
@@ -77,12 +107,14 @@ function initForm(product?: DbProduct, variants?: DbVariant[]): FormState {
           condition: v.condition,
         }))
       : [defaultVariant()],
+    translations: translationState,
   };
 }
 
 interface ProductFormProps {
   product?: DbProduct;
   variants?: DbVariant[];
+  translations?: DbTranslation[];
   onClose: () => void;
   onSaved: () => void;
   categories?: { id: string; name: string }[];
@@ -90,8 +122,8 @@ interface ProductFormProps {
   fullPage?: boolean;
 }
 
-export function ProductForm({ product, variants, onClose, onSaved, categories = [], fullPage = false }: ProductFormProps) {
-  const [form, setForm] = useState<FormState>(() => initForm(product, variants));
+export function ProductForm({ product, variants, translations, onClose, onSaved, categories = [], fullPage = false }: ProductFormProps) {
+  const [form, setForm] = useState<FormState>(() => initForm(product, variants, translations));
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -137,6 +169,37 @@ export function ProductForm({ product, variants, onClose, onSaved, categories = 
   const removeSpec = (idx: number) =>
     setForm((f) => ({ ...f, specs: f.specs.filter((_, i) => i !== idx) }));
 
+  const updateTranslationField = (lang: "en" | "ar", field: "title" | "description", val: string) =>
+    setForm((f) => ({
+      ...f,
+      translations: { ...f.translations, [lang]: { ...f.translations[lang], [field]: val } },
+    }));
+
+  const updateTranslationSpec = (lang: "en" | "ar", idx: number, field: "key" | "value", val: string) =>
+    setForm((f) => {
+      const specs = [...f.translations[lang].specs];
+      specs[idx] = { ...specs[idx], [field]: val };
+      return { ...f, translations: { ...f.translations, [lang]: { ...f.translations[lang], specs } } };
+    });
+
+  const addTranslationSpec = (lang: "en" | "ar") =>
+    setForm((f) => ({
+      ...f,
+      translations: {
+        ...f.translations,
+        [lang]: { ...f.translations[lang], specs: [...f.translations[lang].specs, { key: "", value: "" }] },
+      },
+    }));
+
+  const removeTranslationSpec = (lang: "en" | "ar", idx: number) =>
+    setForm((f) => ({
+      ...f,
+      translations: {
+        ...f.translations,
+        [lang]: { ...f.translations[lang], specs: f.translations[lang].specs.filter((_, i) => i !== idx) },
+      },
+    }));
+
   const updateVariant = (idx: number, field: keyof VariantDraft, val: string) =>
     setForm((f) => {
       const v = [...f.variants];
@@ -173,6 +236,23 @@ export function ProductForm({ product, variants, onClose, onSaved, categories = 
         condition: v.condition,
         attributes: {},
       })),
+      // Only send a translation row for a language once it has some content,
+      // so we don't create empty AR/EN rows for products that haven't been
+      // translated yet.
+      translations: (["en", "ar"] as const)
+        .map((lang) => {
+          const t = form.translations[lang];
+          const specs = Object.fromEntries(
+            t.specs.filter((s) => s.key.trim()).map((s) => [s.key.trim(), s.value.trim()])
+          );
+          return {
+            lang,
+            title: t.title.trim() || null,
+            description: t.description.trim() || null,
+            specs,
+          };
+        })
+        .filter((t) => t.title || t.description || Object.keys(t.specs).length > 0),
     };
 
     const url = product ? `/api/admin/products?id=${product.id}` : "/api/admin/products";
@@ -217,10 +297,11 @@ export function ProductForm({ product, variants, onClose, onSaved, categories = 
         <Tabs defaultValue="basic">
           <TabsList className="mb-5 bg-[var(--color-obsidian)] rounded-xl p-1 h-auto gap-1">
             {[
-              { value: "basic",   label: "Basic Info" },
-              { value: "pricing", label: "Pricing & Condition" },
-              { value: "specs",   label: "Specs" },
-              { value: "images",  label: "Images" },
+              { value: "basic",        label: "Basic Info" },
+              { value: "pricing",      label: "Pricing & Condition" },
+              { value: "specs",        label: "Specs" },
+              { value: "translations", label: "Translations" },
+              { value: "images",       label: "Images" },
             ].map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value}
                 className="rounded-lg text-xs font-semibold px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
@@ -235,13 +316,13 @@ export function ProductForm({ product, variants, onClose, onSaved, categories = 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-[var(--color-ceramic)]">Product Name *</Label>
                 <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Apple iPhone 15" required
+                  placeholder="e.g. Apple iPhone 15" required dir="auto"
                   className="h-9 text-sm border-gray-200 focus:border-[var(--color-mint)]" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-[var(--color-ceramic)]">Brand</Label>
                 <Input value={form.brand} onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
-                  placeholder="e.g. Apple" className="h-9 text-sm border-gray-200" />
+                  placeholder="e.g. Apple" dir="auto" className="h-9 text-sm border-gray-200" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -278,7 +359,10 @@ export function ProductForm({ product, variants, onClose, onSaved, categories = 
               <Textarea value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder="Product description for PDP and AI agents…"
-                rows={4} className="text-sm border-gray-200 resize-none" />
+                rows={4} dir="auto" className="text-sm border-gray-200 resize-none" />
+              <p className="text-[11px] text-[var(--color-slate)]">
+                Fallback text shown if no English/Arabic translation is set on the Translations tab.
+              </p>
             </div>
           </TabsContent>
 
@@ -374,9 +458,9 @@ export function ProductForm({ product, variants, onClose, onSaved, categories = 
               {form.specs.map((spec, idx) => (
                 <div key={idx} className="flex items-center gap-2">
                   <Input value={spec.key} onChange={(e) => updateSpec(idx, "key", e.target.value)}
-                    placeholder="e.g. Display" className="h-9 text-sm border-gray-200 flex-1" />
+                    placeholder="e.g. Display" dir="auto" className="h-9 text-sm border-gray-200 flex-1" />
                   <Input value={spec.value} onChange={(e) => updateSpec(idx, "value", e.target.value)}
-                    placeholder='e.g. 6.1" OLED' className="h-9 text-sm border-gray-200 flex-1" />
+                    placeholder='e.g. 6.1" OLED' dir="auto" className="h-9 text-sm border-gray-200 flex-1" />
                   <button type="button" onClick={() => removeSpec(idx)}
                     disabled={form.specs.length === 1}
                     className="text-gray-300 hover:text-red-400 transition-colors disabled:opacity-30">
@@ -389,6 +473,66 @@ export function ProductForm({ product, variants, onClose, onSaved, categories = 
               className="h-9 border-dashed border-gray-200 text-xs text-[var(--color-slate)] hover:text-[var(--color-ceramic)]">
               <Plus className="h-3.5 w-3.5 mr-1.5" /> Add Spec Row
             </Button>
+          </TabsContent>
+
+          {/* Translations — the storefront reads name/description/specs per
+              locale from product_translations, falling back to the Basic
+              Info / Specs tabs above when a language has no translation row. */}
+          <TabsContent value="translations" className="space-y-6 mt-0">
+            <p className="text-xs text-[var(--color-slate)]">
+              Per-language title, description and specs shown on the storefront (falls back to Basic
+              Info / Specs above when empty for a language).
+            </p>
+            {([
+              { lang: "en" as const, label: "English", dir: "ltr" as const },
+              { lang: "ar" as const, label: "العربية", dir: "rtl" as const },
+            ]).map(({ lang, label, dir }) => (
+              <div key={lang} className="rounded-xl border border-gray-100 bg-[var(--color-obsidian)] p-4 space-y-3">
+                <span className="text-xs font-bold text-[var(--color-ceramic)] uppercase tracking-wider">
+                  {label}
+                </span>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-[var(--color-ceramic)]">Title</Label>
+                  <Input value={form.translations[lang].title}
+                    onChange={(e) => updateTranslationField(lang, "title", e.target.value)}
+                    placeholder={lang === "en" ? "e.g. Apple iPhone 15" : "مثال: آيفون 15"}
+                    dir={dir} className="h-9 text-sm border-gray-200 bg-white" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-[var(--color-ceramic)]">Description</Label>
+                  <Textarea value={form.translations[lang].description}
+                    onChange={(e) => updateTranslationField(lang, "description", e.target.value)}
+                    placeholder={lang === "en" ? "Product description in English…" : "وصف المنتج بالعربية…"}
+                    rows={4} dir={dir} className="text-sm border-gray-200 bg-white resize-none" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-[var(--color-ceramic)]">Specs</Label>
+                  <div className="space-y-2">
+                    {form.translations[lang].specs.map((spec, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <Input value={spec.key}
+                          onChange={(e) => updateTranslationSpec(lang, idx, "key", e.target.value)}
+                          placeholder={lang === "en" ? "e.g. Capacity" : "مثال: السعة"}
+                          dir={dir} className="h-9 text-sm border-gray-200 bg-white flex-1" />
+                        <Input value={spec.value}
+                          onChange={(e) => updateTranslationSpec(lang, idx, "value", e.target.value)}
+                          placeholder={lang === "en" ? "e.g. 10000mAh" : "مثال: 10000 مللي أمبير"}
+                          dir={dir} className="h-9 text-sm border-gray-200 bg-white flex-1" />
+                        <button type="button" onClick={() => removeTranslationSpec(lang, idx)}
+                          disabled={form.translations[lang].specs.length === 1}
+                          className="text-gray-300 hover:text-red-400 transition-colors disabled:opacity-30">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <Button type="button" variant="outline" onClick={() => addTranslationSpec(lang)}
+                    className="h-9 border-dashed border-gray-200 text-xs text-[var(--color-slate)] hover:text-[var(--color-ceramic)]">
+                    <Plus className="h-3.5 w-3.5 mr-1.5" /> Add Spec Row
+                  </Button>
+                </div>
+              </div>
+            ))}
           </TabsContent>
 
           {/* Images */}

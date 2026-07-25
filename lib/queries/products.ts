@@ -10,7 +10,7 @@ export type ProductWithVariants = {
   variants: DbVariant[];
 };
 
-export async function getProductBySlug(slug: string): Promise<ProductWithVariants | null> {
+export async function getProductBySlug(slug: string, locale: string): Promise<ProductWithVariants | null> {
   "use cache";
   cacheLife("hours");
   cacheTag("products", `product:${slug}`);
@@ -27,15 +27,42 @@ export async function getProductBySlug(slug: string): Promise<ProductWithVariant
   if (pErr) throw new Error(`getProductBySlug: ${pErr.message}`);
   if (!product) return null;
 
-  const { data: variants, error: vErr } = await supabase
-    .from("variants")
-    .select("*")
-    .eq("product_id", product.id)
-    .order("price", { ascending: true });
+  const [{ data: variants, error: vErr }, { data: translation }] = await Promise.all([
+    supabase
+      .from("variants")
+      .select("*")
+      .eq("product_id", product.id)
+      .order("price", { ascending: true }),
+    supabase
+      .from("product_translations")
+      .select("title, description, specs")
+      .eq("product_id", product.id)
+      .eq("lang", locale)
+      .maybeSingle(),
+  ]);
 
   if (vErr) throw new Error(`getVariants: ${vErr.message}`);
 
-  return { product, variants: variants ?? [] };
+  // Overlay the locale-specific translation onto the base row, falling back
+  // to the untranslated products.* columns whenever a language has no
+  // product_translations row (or a field within it is empty).
+  //
+  // Every field is checked the same way — null, "" and whitespace-only all
+  // count as "not translated". Rows are written straight to Supabase by the
+  // external product pipeline, which does not normalise blanks to NULL the
+  // way the admin form does, so a field can legitimately arrive as "".
+  let localized: DbProduct = product;
+  if (translation) {
+    const translatedSpecs = translation.specs as Record<string, string> | null;
+    localized = {
+      ...product,
+      name: translation.title?.trim() ? translation.title : product.name,
+      description: translation.description?.trim() ? translation.description : product.description,
+      specs: translatedSpecs && Object.keys(translatedSpecs).length > 0 ? translatedSpecs : product.specs,
+    };
+  }
+
+  return { product: localized, variants: variants ?? [] };
 }
 
 export async function generateStaticProductParams(): Promise<{ slug: string }[]> {

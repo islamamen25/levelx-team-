@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { rateLimit, rateLimitHeaders, getClientId } from "@/lib/rate-limit";
 import { requireAdmin } from "@/lib/supabase/require-admin";
@@ -6,6 +7,31 @@ import { requireAdmin } from "@/lib/supabase/require-admin";
 // Rate limits: read ops are generous (browsing), writes are strict
 const RL_READ  = { limit: 60, windowMs: 60_000 } as const;   // 60 GET/min
 const RL_WRITE = { limit: 20, windowMs: 60_000 } as const;   // 20 POST|PATCH|DELETE/min
+
+// `{ expire: 0 }` — not a named profile like "hours"/"max". A named profile
+// only marks the tag stale, so the next visit is served the STALE page while
+// fresh data loads behind it; an admin who just saved would still see the old
+// content. Next 16 documents `{ expire: 0 }` as the way a Route Handler forces
+// immediate expiry (`updateTag` would be the alternative, but it is Server
+// Action-only and this is a fetch() to an API route).
+const IMMEDIATE = { expire: 0 } as const;
+
+/**
+ * Purge the storefront cache after an admin write.
+ *
+ * Without this, lib/queries/products.ts serves every read from `"use cache"` +
+ * cacheLife("hours"), so an edit made here would not reach
+ * /[locale]/products/[slug] or the category/listing pages for up to an hour.
+ * The "products" tag covers the listing + category queries; the per-slug tag
+ * covers the PDP. Pass every slug the product has been known by, so renaming a
+ * slug also invalidates the old URL.
+ */
+function revalidateProducts(...slugs: (string | null | undefined)[]) {
+  revalidateTag("products", IMMEDIATE);
+  for (const slug of new Set(slugs.filter(Boolean))) {
+    revalidateTag(`product:${slug}`, IMMEDIATE);
+  }
+}
 
 // ── Zod Schemas (AI-agent ready — strict, fully typed) ────────────────────────
 
@@ -21,21 +47,48 @@ const VariantSchema = z.object({
   attributes: z.record(z.string(), z.string()).default({}),
 });
 
+// Mirrors the DB CHECK constraint product_translations_lang_check.
+// PATCH relies on this being the complete set of languages a product can have.
+const LANGS = ["en", "ar"] as const;
+
+// zod's z.string().uuid() enforces strict RFC4122 (requires the variant
+// nibble to be 8/9/a/b). This project's categories table was seeded with
+// memorable-but-non-compliant ids like b4444444-4444-4444-4444-444444444444
+// ("Power bank") — valid as far as Postgres's native uuid type is concerned,
+// but every one of them fails z.string().uuid(). That silently 422'd EVERY
+// product save that included a category (i.e. virtually all of them), with
+// the admin form only ever surfacing a generic "Validation failed" message.
+// Match the DB's actual leniency instead of RFC4122.
+const UuidLike = z
+  .string()
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "Invalid UUID");
+
+const TranslationSchema = z.object({
+  lang: z.enum(LANGS),
+  title: z.string().max(255).nullable().optional(),
+  description: z.string().max(5000).nullable().optional(),
+  specs: z.record(z.string(), z.string()).default({}),
+});
+
 const CreateProductSchema = z.object({
   name: z.string().min(1).max(255),
   description: z.string().max(5000).nullable().optional(),
   slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/, "slug must be lowercase, numbers, hyphens only").optional(),
   brand: z.string().max(100).nullable().optional(),
-  category_id: z.string().uuid().nullable().optional(),
+  category_id: UuidLike.nullable().optional(),
   is_serialized: z.boolean().default(false),
   images: z.array(z.string().url()).default([]),
   specs: z.record(z.string(), z.string()).default({}),
   ai_metadata: z.record(z.string(), z.unknown()).default({}),
   variants: z.array(VariantSchema).min(1, "At least one variant is required"),
+  // Per-language title/description/specs shown on the storefront. Optional —
+  // languages with no meaningful content are omitted by the admin form.
+  translations: z.array(TranslationSchema).default([]),
 });
 
 const UpdateProductSchema = CreateProductSchema.partial().extend({
   variants: z.array(VariantSchema).optional(),
+  translations: z.array(TranslationSchema).optional(),
 });
 
 // ── Helper: uniform error response ───────────────────────────────────────────
@@ -117,7 +170,7 @@ export async function POST(req: NextRequest) {
     return apiError("Validation failed", 422, parsed.error.flatten());
   }
 
-  const { variants, ...productData } = parsed.data;
+  const { variants, translations, ...productData } = parsed.data;
 
   // Insert product (cast JSONB fields to satisfy Supabase Json type)
   const { data: product, error: productError } = await supabase
@@ -145,6 +198,16 @@ export async function POST(req: NextRequest) {
     await supabase.from("products").delete().eq("id", product.id);
     return apiError(variantsError.message, 500);
   }
+
+  // Insert translations (non-fatal: product + variants already committed)
+  if (translations && translations.length > 0) {
+    const { error: translationsError } = await supabase
+      .from("product_translations")
+      .insert(translations.map((t) => ({ ...t, product_id: product.id })));
+    if (translationsError) return apiError(translationsError.message, 500);
+  }
+
+  revalidateProducts(product.slug);
 
   return NextResponse.json(
     { data: { ...product, variants: createdVariants } },
@@ -176,7 +239,19 @@ export async function PATCH(req: NextRequest) {
     return apiError("Validation failed", 422, parsed.error.flatten());
   }
 
-  const { variants, ...productData } = parsed.data;
+  const { variants, translations, ...productData } = parsed.data;
+
+  // Capture the slug before the update: if this request renames it, the old
+  // PDP URL still holds a cached entry under the old per-slug tag.
+  let previousSlug: string | null = null;
+  if (productData.slug !== undefined) {
+    const { data: existing } = await supabase
+      .from("products")
+      .select("slug")
+      .eq("id", id)
+      .maybeSingle();
+    previousSlug = existing?.slug ?? null;
+  }
 
   // Update product fields
   if (Object.keys(productData).length > 0) {
@@ -197,6 +272,39 @@ export async function PATCH(req: NextRequest) {
     if (error) return apiError(error.message, 500);
   }
 
+  // When `translations` is present it is the COMPLETE desired set for this
+  // product — mirroring how `variants` above is a full replacement.
+  //
+  // The upsert alone can only add or update, never remove. The admin form
+  // drops a language from the payload once all of its fields are blank, so
+  // upsert-only meant clearing a translation in the UI silently left the old
+  // row in the DB and the storefront kept serving it. Deleting the languages
+  // that are absent is what makes "clear the fields and save" actually work.
+  //
+  // Omitting the key entirely (translations === undefined) still leaves every
+  // translation untouched, so a partial PATCH cannot wipe them by accident.
+  if (translations) {
+    if (translations.length > 0) {
+      const { error } = await supabase
+        .from("product_translations")
+        .upsert(
+          translations.map((t) => ({ ...t, product_id: id })),
+          { onConflict: "product_id,lang" }
+        );
+      if (error) return apiError(error.message, 500);
+    }
+
+    const removed = LANGS.filter((lang) => !translations.some((t) => t.lang === lang));
+    if (removed.length > 0) {
+      const { error } = await supabase
+        .from("product_translations")
+        .delete()
+        .eq("product_id", id)
+        .in("lang", removed);
+      if (error) return apiError(error.message, 500);
+    }
+  }
+
   const { data, error } = await supabase
     .from("products")
     .select("*, variants(*)")
@@ -204,6 +312,9 @@ export async function PATCH(req: NextRequest) {
     .single();
 
   if (error) return apiError(error.message, 500);
+
+  revalidateProducts(previousSlug, data.slug);
+
   return NextResponse.json({ data });
 }
 
@@ -219,8 +330,18 @@ export async function DELETE(req: NextRequest) {
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return apiError("Missing product id");
 
+  // Read the slug first — after the delete there is no row left to derive the
+  // per-slug cache tag from, and the PDP would keep serving the stale page.
+  const { data: existing } = await supabase
+    .from("products")
+    .select("slug")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) return apiError(error.message, 500);
+
+  revalidateProducts(existing?.slug);
 
   return NextResponse.json({ success: true });
 }

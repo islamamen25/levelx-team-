@@ -16,3 +16,5 @@ export type DbProduct = Database["public"]["Tables"]["products"]["Row"];
 export type DbVariant = Database["public"]["Tables"]["variants"]["Row"];
 
 export type DbCategory = Database["public"]["Tables"]["categories"]["Row"];
+
+export type DbTranslation = Database["public"]["Tables"]["product_translations"]["Row"];

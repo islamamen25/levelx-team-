@@ -8,10 +8,20 @@ import { revalidateTag } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
+// z.string().uuid() enforces strict RFC4122 (variant nibble must be 8/9/a/b).
+// This project's categories were seeded with memorable-but-non-compliant ids
+// like b4444444-4444-4444-4444-444444444444 ("Power bank") — valid to
+// Postgres's native uuid type, but rejected by z.string().uuid(). Match the
+// DB's actual leniency instead (see app/api/admin/products/route.ts for the
+// same issue on category_id there).
+const UuidLike = z
+  .string()
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, "Invalid UUID");
+
 const CategorySchema = z.object({
   name:         z.string().min(1),
   slug:         z.string().min(1).regex(/^[a-z0-9-]+$/),
-  parent_id:    z.string().uuid().nullable().optional(),
+  parent_id:    UuidLike.nullable().optional(),
   is_visible:   z.boolean().optional(),
   // Home page presentation, all admin-controlled
   in_carousel:  z.boolean().optional(),

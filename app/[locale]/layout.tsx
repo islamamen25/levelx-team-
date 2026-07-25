@@ -80,7 +80,13 @@ export default async function LocaleLayout({ children, params }: Props) {
       >
         <NextIntlClientProvider messages={messages}>
           <SmoothScroll>
-            <Navbar locale={locale} categories={categories} />
+            {/* Navbar reads useSearchParams() (to preserve query params like
+                ?id= across the locale switcher) — that hook requires a
+                Suspense boundary in the App Router or Next.js errors at
+                build time. */}
+            <Suspense fallback={null}>
+              <Navbar locale={locale} categories={categories} />
+            </Suspense>
             <main className="flex-1">
               <Suspense fallback={null}>{children}</Suspense>
             </main>

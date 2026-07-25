@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { useScrolled } from "@/hooks/use-scrolled";
 import { Search, ShoppingBag, User, Menu, X, ChevronRight } from "lucide-react";
@@ -28,11 +28,17 @@ export function Navbar({ locale, categories }: NavbarProps) {
   const tc = useTranslations("common");
   const scrolled = useScrolled(8);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
   const cartCount = useCartStore((s) => s.totalItems());
 
   const otherLocale = locale === "en" ? "ar" : "en";
-  const basePath = pathname.replace(/^\/(en|ar)/, "") || "/";
+  // usePathname() never includes the query string, so switching locale used
+  // to silently drop it — e.g. /en/dashboard/catalog/edit?id=<uuid> became
+  // /ar/dashboard/catalog/edit (no id), which 404s because that route
+  // requires ?id=. Re-attach whatever search params are on the current URL.
+  const query = searchParams.toString();
+  const basePath = (pathname.replace(/^\/(en|ar)/, "") || "/") + (query ? `?${query}` : "");
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 transition-shadow duration-300">

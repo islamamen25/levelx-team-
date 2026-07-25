@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 0. Pre-flight (read first)
 Next.js 16.2 has breaking changes from training data. **Before writing any Next/React code**, consult `node_modules/next/dist/docs/` for the relevant API. Heed deprecation notices.
 
+**Product data → Supabase:** any task that creates, imports, or updates rows in
+`products` / `variants` / `product_translations` — **read [`COWORK.md`](COWORK.md) first**.
+It holds the write contract (columns, enums, the `UNIQUE (product_id, lang)` upsert),
+the rules that decide whether a product is visible on the storefront at all, and the
+mandatory `POST /api/revalidate` step. Direct DB writes do **not** invalidate the
+Next.js cache — skip that call and your data will not appear for up to an hour.
+
 ---
 
 ## 1. Project Identity
@@ -166,15 +173,10 @@ No test runner is configured.
 
 ---
 
-## 10. n8n Pipeline — TEKDOM Amazon → Supabase (Workflow ID: Q1LKEh5okGIThDbh)
+## 11. Product Data Ingestion
+Product rows are generated via **cowork** and written **straight to Supabase**.
+The write contract, storefront visibility rules, and the mandatory
+`POST /api/revalidate` step live in [`COWORK.md`](COWORK.md) — read it before
+touching `products` / `variants` / `product_translations`.
 
-**When working on this workflow, ALWAYS read the skill file first:**
-`D:/level X/.claudecode/skills/workflow_optimizer_agent.xml`
-
-It contains all locked architectural decisions, node implementations, and rules. Key points:
-- Bilingual data model: `products` + `product_translations` (AR from amazon.eg, EN from amazon.com via ASIN)
-- Image extraction uses Set-based deduplication — never `arr1 || arr2` pattern
-- Rejection flow: Check Approval FALSE → Google Search (3 queries) — UPC Database removed
-- Both sendAndWait nodes require `responseType: "approval"` or buttons won't appear
-- Both Telegram reviews use identical structure — only header lines 1–2 differ
-- Google Drive: move file to "TEKDOM - Processed" folder, never delete
+The older n8n pipeline is retired; see the fallback note at the end of `COWORK.md`.

@@ -28,19 +28,32 @@ export default async function EditProductPage({ params, searchParams }: Props) {
 
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: product }, { data: variants }, dbCategories] = await Promise.all([
+  const [{ data: product }, variantsRes, translationsRes, dbCategories] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).maybeSingle(),
     supabase.from("variants").select("*").eq("product_id", id).order("price", { ascending: true }),
+    supabase.from("product_translations").select("*").eq("product_id", id),
     getAllCategoriesAdmin(),
   ]);
 
   if (!product) notFound();
+
+  // Saving this form sends variants and translations as a COMPLETE set — the
+  // API replaces variants wholesale and deletes any language not in the
+  // payload. So a failed read here must not fall through to an empty form:
+  // the admin would see blank fields and the first save would wipe live rows.
+  // Fail loudly instead and let the error boundary handle it.
+  if (variantsRes.error) throw new Error(`Failed to load variants: ${variantsRes.error.message}`);
+  if (translationsRes.error) throw new Error(`Failed to load translations: ${translationsRes.error.message}`);
+
+  const variants = variantsRes.data;
+  const translations = translationsRes.data;
 
   return (
     <ProductFormPage
       locale={locale}
       product={product}
       variants={variants ?? []}
+      translations={translations ?? []}
       categories={dbCategories.map((c) => ({ id: c.id, name: c.name }))}
     />
   );
