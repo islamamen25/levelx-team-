@@ -76,6 +76,7 @@ const CreateProductSchema = z.object({
   slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/, "slug must be lowercase, numbers, hyphens only").optional(),
   brand: z.string().max(100).nullable().optional(),
   category_id: UuidLike.nullable().optional(),
+  is_active: z.boolean().default(true),
   is_serialized: z.boolean().default(false),
   images: z.array(z.string().url()).default([]),
   specs: z.record(z.string(), z.string()).default({}),
@@ -97,6 +98,7 @@ const CreateProductSchema = z.object({
 // these as plain .optional() with no default so "absent" means "leave this
 // column alone", not "reset it".
 const UpdateProductSchema = CreateProductSchema.partial().extend({
+  is_active: z.boolean().optional(),
   is_serialized: z.boolean().optional(),
   images: z.array(z.string().url()).optional(),
   specs: z.record(z.string(), z.string()).optional(),

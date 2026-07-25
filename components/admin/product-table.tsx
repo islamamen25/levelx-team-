@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Pencil, Trash2, ChevronUp, ChevronDown, Package } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, ChevronUp, ChevronDown, Package, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -63,6 +63,7 @@ export function ProductTable({ initialProducts, categories, locale }: ProductTab
   const [sortDir, setSortDir]       = useState<SortDir>("asc");
   const [deleteId, setDeleteId]     = useState<string | null>(null);
   const [deleting, setDeleting]     = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const CATS = ["All", ...categories.map((c) => c.name)];
 
@@ -108,6 +109,17 @@ export function ProductTable({ initialProducts, categories, locale }: ProductTab
     const res = await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" });
     setDeleting(false);
     setDeleteId(null);
+    if (res.ok) router.refresh();
+  };
+
+  const handleToggleActive = async (id: string, nextActive: boolean) => {
+    setTogglingId(id);
+    const res = await fetch(`/api/admin/products?id=${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_active: nextActive }),
+    });
+    setTogglingId(null);
     if (res.ok) router.refresh();
   };
 
@@ -189,6 +201,7 @@ export function ProductTable({ initialProducts, categories, locale }: ProductTab
                   Stock <SortIcon field="stock" sortField={sortField} sortDir={sortDir} />
                 </button>
               </TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -196,7 +209,7 @@ export function ProductTable({ initialProducts, categories, locale }: ProductTab
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={8}>
                   <div className="flex flex-col items-center gap-2 py-12 text-gray-300">
                     <Package className="h-10 w-10" />
                     <span className="text-sm">No products found</span>
@@ -214,7 +227,8 @@ export function ProductTable({ initialProducts, categories, locale }: ProductTab
 
               return (
                 <TableRow key={product.id}
-                  className="border-gray-50 hover:bg-[var(--color-obsidian)]/50 transition-colors group">
+                  onClick={() => openEdit(row)}
+                  className="border-gray-50 hover:bg-[var(--color-obsidian)]/50 transition-colors cursor-pointer">
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-xl shrink-0 overflow-hidden bg-[#F5F5F7]">
@@ -266,13 +280,39 @@ export function ProductTable({ initialProducts, categories, locale }: ProductTab
                     </div>
                   </TableCell>
 
+                  <TableCell>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={product.is_active}
+                      title={product.is_active ? "Published — click to unpublish" : "Draft — click to publish"}
+                      disabled={togglingId === product.id}
+                      onClick={(e) => { e.stopPropagation(); handleToggleActive(product.id, !product.is_active); }}
+                      className={[
+                        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-50",
+                        product.is_active ? "bg-emerald-500" : "bg-gray-200",
+                      ].join(" ")}
+                    >
+                      {togglingId === product.id ? (
+                        <Loader2 className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 animate-spin text-white" />
+                      ) : (
+                        <span
+                          className={[
+                            "inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform",
+                            product.is_active ? "translate-x-[18px]" : "translate-x-1",
+                          ].join(" ")}
+                        />
+                      )}
+                    </button>
+                  </TableCell>
+
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => openEdit(row)}
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={(e) => { e.stopPropagation(); openEdit(row); }}
                         className="rounded-lg p-2 hover:bg-gray-100 transition-colors text-[var(--color-slate)] hover:text-[var(--color-ceramic)]">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => setDeleteId(product.id)}
+                      <button onClick={(e) => { e.stopPropagation(); setDeleteId(product.id); }}
                         className="rounded-lg p-2 hover:bg-red-50 transition-colors text-[var(--color-slate)] hover:text-red-500">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

@@ -40,6 +40,7 @@ interface FormState {
   slug: string;
   description: string;
   categoryId: string;
+  isActive: boolean;
   images: string[];
   specs: { key: string; value: string }[];
   variants: VariantDraft[];
@@ -81,6 +82,7 @@ function initForm(product?: DbProduct, variants?: DbVariant[], translations?: Db
   if (!product) {
     return {
       name: "", brand: "", slug: "", description: "", categoryId: "",
+      isActive: true,
       images: [],
       specs: [{ key: "", value: "" }],
       variants: [defaultVariant()],
@@ -93,6 +95,7 @@ function initForm(product?: DbProduct, variants?: DbVariant[], translations?: Db
     slug: product.slug ?? "",
     description: product.description ?? "",
     categoryId: product.category_id ?? "",
+    isActive: product.is_active,
     images: (product.images as string[]) ?? [],
     specs: Object.entries((product.specs as Record<string, string>) ?? {}).map(
       ([key, value]) => ({ key, value })
@@ -223,6 +226,7 @@ export function ProductForm({ product, variants, translations, onClose, onSaved,
       slug: form.slug || undefined,
       description: form.description || null,
       category_id: form.categoryId || null,
+      is_active: form.isActive,
       images: form.images,
       specs: Object.fromEntries(
         form.specs.filter((s) => s.key.trim()).map((s) => [s.key.trim(), s.value.trim()])
@@ -286,10 +290,38 @@ export function ProductForm({ product, variants, translations, onClose, onSaved,
             {product ? `Editing: ${product.name}` : "Fill in the details below"}
           </p>
         </div>
-        <button type="button" onClick={onClose}
-          className="rounded-lg p-2 hover:bg-gray-100 transition-colors">
-          <X className="h-4 w-4 text-[var(--color-slate)]" />
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={form.isActive}
+            title={form.isActive ? "Published — visible on the storefront" : "Draft — hidden from the storefront"}
+            onClick={() => setForm((f) => ({ ...f, isActive: !f.isActive }))}
+            className={[
+              "flex items-center gap-2 rounded-full pl-1 pr-3 py-1 text-xs font-semibold transition-colors",
+              form.isActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-[var(--color-slate)]",
+            ].join(" ")}
+          >
+            <span
+              className={[
+                "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
+                form.isActive ? "bg-emerald-500" : "bg-gray-300",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform",
+                  form.isActive ? "translate-x-[18px]" : "translate-x-1",
+                ].join(" ")}
+              />
+            </span>
+            {form.isActive ? "Published" : "Draft"}
+          </button>
+          <button type="button" onClick={onClose}
+            className="rounded-lg p-2 hover:bg-gray-100 transition-colors">
+            <X className="h-4 w-4 text-[var(--color-slate)]" />
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
