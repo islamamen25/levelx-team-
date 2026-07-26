@@ -18,12 +18,22 @@ interface FilterSidebarProps {
 }
 
 const CONDITIONS = ["Fair", "Good", "Excellent", "Premium"] as const;
-const PRICE_PRESETS = [
-  { label: "< £200",       min: "0",   max: "200"  },
-  { label: "£200 – £500",  min: "200", max: "500"  },
-  { label: "£500 – £800",  min: "500", max: "800"  },
-  { label: "£800+",        min: "800", max: ""     },
-] as const;
+// حدود EGP — القيمة القديمة كانت بالجنيه الإسترليني (£200/£500/£800) وتقارَن
+// مباشرة مع عمود price بالجنيه المصري، فكل منتج كان يقع في الفئة الأخيرة.
+const PRICE_PRESETS = {
+  ar: [
+    { label: "< 1,000 ج.م.",       min: "0",     max: "1000"  },
+    { label: "1,000 – 5,000 ج.م.", min: "1000",  max: "5000"  },
+    { label: "5,000 – 15,000 ج.م.", min: "5000",  max: "15000" },
+    { label: "15,000+ ج.م.",       min: "15000", max: ""      },
+  ],
+  en: [
+    { label: "< 1,000 EGP",       min: "0",     max: "1000"  },
+    { label: "1,000 – 5,000 EGP", min: "1000",  max: "5000"  },
+    { label: "5,000 – 15,000 EGP", min: "5000",  max: "15000" },
+    { label: "15,000+ EGP",       min: "15000", max: ""      },
+  ],
+} as const;
 
 export function FilterSidebar({ brands, categories, locale }: FilterSidebarProps) {
   const t = useTranslations("plp");
@@ -160,7 +170,7 @@ export function FilterSidebar({ brands, categories, locale }: FilterSidebarProps
           <AccordionContent>
             {/* Preset chips */}
             <div className="mb-3 flex flex-wrap gap-2">
-              {PRICE_PRESETS.map(({ label, min, max }) => {
+              {PRICE_PRESETS[locale === "ar" ? "ar" : "en"].map(({ label, min, max }) => {
                 const active = priceMin === min && priceMax === max;
                 return (
                   <button

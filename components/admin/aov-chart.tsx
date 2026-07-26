@@ -24,7 +24,7 @@ export function AovChart() {
               tickLine={false}
               axisLine={false}
               tick={{ fontSize: 11, fill: "#6E6E73" }}
-              tickFormatter={(v) => `£${v}`}
+              tickFormatter={(v) => `${v} EGP`}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
             <Bar dataKey="aov" fill="#00A699" radius={[6, 6, 0, 0]} />

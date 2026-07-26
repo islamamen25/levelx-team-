@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { DbProduct, DbVariant } from "@/lib/supabase";
@@ -11,8 +12,19 @@ interface TopBrandsCarouselProps {
   locale: string;
 }
 
-const BRAND_CHIPS: { name: string; label: string; style: React.CSSProperties }[] = [
-  { name: "Apple",     label: "",         style: { fontFamily: "-apple-system, 'SF Pro Display', sans-serif", fontSize: "28px", fontWeight: 400 } },
+/* شعار Apple يعتمد اعتيادياً على الحرف الخاص  في الخصائص الحصرية لأنظمة Apple
+   فقط (SF Pro/Helvetica Neue) — يظهر مربّعاً فارغاً على أي نظام آخر. SVG صريح
+   بديل يعمل على كل الأنظمة. */
+function AppleLogo() {
+  return (
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" className="text-ceramic" aria-hidden>
+      <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.673-.546 9.103 1.507 12.09 1.003 1.48 2.203 3.135 3.79 3.135 1.578-.006 2.045-1.083 3.878-1.086 1.833-.003 2.28 1.086 3.878 1.086 1.596 0 2.756-1.523 3.786-3.02.762-1.11 1.351-2.301 1.751-3.541-2.05-.83-3.328-2.716-3.34-4.94-.014-1.977 1.157-3.63 2.973-4.442-1.014-1.294-2.531-2.076-4.13-2.096-1.532-.023-2.982 1.05-3.937 1.05zM15.53.5c-.017 1.03-.415 2.03-1.087 2.79-.752.881-1.98 1.579-3.15 1.489-.03-1.083.43-2.106 1.135-2.842C13.202 1.124 14.448.494 15.53.5z" />
+    </svg>
+  );
+}
+
+const BRAND_CHIPS: { name: string; label: string; icon?: React.ReactNode; style: React.CSSProperties }[] = [
+  { name: "Apple",     label: "",         icon: <AppleLogo />, style: {} },
   { name: "Samsung",   label: "SAMSUNG",  style: { fontFamily: "sans-serif", fontSize: "11px", letterSpacing: "0.08em", fontWeight: 900 } },
   { name: "Sony",      label: "SONY",     style: { fontFamily: "sans-serif", fontSize: "14px", letterSpacing: "0.15em", fontWeight: 900 } },
   { name: "Google",    label: "Google",   style: { fontFamily: "'Segoe UI', sans-serif", fontSize: "15px", fontWeight: 500, color: "#4285f4" } },
@@ -50,31 +62,32 @@ export function TopBrandsCarousel({ products, locale }: TopBrandsCarouselProps) 
           className="mb-6 text-ceramic"
           style={{ fontSize: "clamp(1.4rem, 2.8vw, 2rem)", fontWeight: 800, letterSpacing: "-0.015em" }}
         >
-          {isAr ? "أفضل الماركات، مجددة" : "Top brands, refurbished"}
+          {isAr ? "أفضل الماركات" : "Top brands"}
         </h2>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
           {/* Left: lifestyle image */}
-          <div
-            className="overflow-hidden rounded-2xl min-h-[200px] md:col-span-4 md:min-h-[460px]"
-            style={{ background: "linear-gradient(160deg, #3a3a4a 0%, #1a1a2e 50%, #0f0f1a 100%)" }}
-          >
-            <div className="flex h-full flex-col justify-between p-6">
+          <div className="relative overflow-hidden rounded-2xl min-h-[200px] md:col-span-4 md:min-h-[460px]">
+            <Image
+              src="https://images.unsplash.com/photo-1776919017122-8140e279c889?w=800&q=80&fit=crop"
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, 320px"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />
+            <div className="relative flex h-full flex-col justify-between p-6">
               <div className="flex flex-wrap gap-2">
-                <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/40">refurbished</span>
-                <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/40">certified</span>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/70">
+                  {isAr ? "ماركات عالمية" : "global brands"}
+                </span>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/70">
+                  {isAr ? "ضمان سنة" : "1-year warranty"}
+                </span>
               </div>
-              <div>
-                <div className="mb-4 flex items-end gap-4">
-                  <span style={{ fontSize: "3.5rem", lineHeight: 1 }} aria-hidden>🎧</span>
-                  <span style={{ fontSize: "2.5rem", lineHeight: 1, opacity: 0.7 }} aria-hidden>📱</span>
-                  <span style={{ fontSize: "2rem", lineHeight: 1, opacity: 0.5 }} aria-hidden>⌚</span>
-                  <span style={{ fontSize: "1.5rem", lineHeight: 1, opacity: 0.3 }} aria-hidden>💻</span>
-                </div>
-                <p className="text-sm font-medium text-white/40">
-                  {isAr ? "تكنولوجيا مجددة بعناية" : "Tech that feels like new"}
-                </p>
-              </div>
+              <p className="text-sm font-medium text-white/80">
+                {isAr ? "تكنولوجيا مختارة بعناية" : "Carefully curated tech"}
+              </p>
             </div>
           </div>
 
@@ -91,9 +104,11 @@ export function TopBrandsCarousel({ products, locale }: TopBrandsCarouselProps) 
                     className="group flex flex-col items-center gap-2"
                   >
                     <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-[var(--color-iron)] bg-white shadow-sm transition-all duration-200 group-hover:border-ceramic group-hover:shadow-md">
-                      <span className="select-none text-center leading-none text-ceramic" style={brand.style}>
-                        {brand.label}
-                      </span>
+                      {brand.icon ?? (
+                        <span className="select-none text-center leading-none text-ceramic" style={brand.style}>
+                          {brand.label}
+                        </span>
+                      )}
                     </div>
                     <span className="text-center text-[11px] font-medium text-slate">{brand.name}</span>
                   </Link>
@@ -124,7 +139,9 @@ export function TopBrandsCarousel({ products, locale }: TopBrandsCarouselProps) 
                   disabled={!canScrollLeft}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-iron)] bg-white text-ceramic transition-colors hover:border-ceramic disabled:opacity-30"
                 >
-                  <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+                  {/* الأسهم مرآة في RTL: flex يعكس ترتيب الأزرار تلقائياً تبعاً لـdir،
+                      فالشيفرون لازم يُقلَب بصرياً ليطابق اتجاه الحركة الجديد. */}
+                  <ChevronLeft className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} strokeWidth={2} />
                 </button>
                 <button
                   type="button"
@@ -133,7 +150,7 @@ export function TopBrandsCarousel({ products, locale }: TopBrandsCarouselProps) 
                   disabled={!canScrollRight}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-ceramic bg-ceramic text-white transition-colors hover:bg-ceramic/90 disabled:opacity-30"
                 >
-                  <ChevronRight className="h-5 w-5" strokeWidth={2} />
+                  <ChevronRight className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} strokeWidth={2} />
                 </button>
               </div>
             </div>

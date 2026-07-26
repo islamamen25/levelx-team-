@@ -32,9 +32,9 @@ export function generateStaticParams() {
 }
 
 export const metadata: Metadata = {
-  title: "LevelX — Premium Refurbished Electronics",
+  title: "LevelX — Premium Electronics & Accessories",
   description:
-    "Expert-verified refurbished smartphones, laptops and more. 1-year warranty, 30-day returns, free UK delivery.",
+    "Smartphones, laptops, accessories and more. 1-year warranty, 30-day returns, free delivery.",
 };
 
 type Props = {
@@ -55,7 +55,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   const [messages, storeConfig, categories] = await Promise.all([
     getMessages({ locale }),
     getStoreConfig(),
-    getCategoryTree(),
+    getCategoryTree(locale),
   ]);
 
   const dir      = locale === "ar" ? "rtl" : "ltr";
@@ -73,9 +73,11 @@ export default async function LocaleLayout({ children, params }: Props) {
         {/* ── Dynamic brand theme injected from Storefront Builder ── */}
         <style dangerouslySetInnerHTML={{ __html: themeCSS }} />
       </head>
+      {/* Tailwind v4: `font-[…]` وحده غامض بين font-family و font-weight
+          فلا يُصرَّف إلى أي CSS. لازم type hint صريح `family-name:`. */}
       <body
         className={`min-h-full flex flex-col bg-obsidian text-ceramic overflow-x-hidden ${
-          isArabic ? "font-[var(--font-tajawal)]" : ""
+          isArabic ? "font-[family-name:var(--font-tajawal)]" : ""
         }`}
       >
         <NextIntlClientProvider messages={messages}>

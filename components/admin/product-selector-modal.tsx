@@ -163,7 +163,7 @@ export function ProductSelectorModal({
                     {/* Price */}
                     <span className="text-sm font-bold text-[var(--color-ceramic)] shrink-0">
                       {product.price > 0
-                        ? new Intl.NumberFormat("ar-EG", { style: "currency", currency: "EGP", maximumFractionDigits: 0 }).format(product.price)
+                        ? new Intl.NumberFormat("ar-EG-u-nu-latn", { style: "currency", currency: "EGP", maximumFractionDigits: 0 }).format(product.price)
                         : "—"}
                     </span>
 

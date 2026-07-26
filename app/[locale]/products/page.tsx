@@ -32,7 +32,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
 
   const [results, allCategories, brands] = await Promise.all([
     getProductsFiltered({ categorySlug, brand, condition, priceMin, priceMax }),
-    getCategoryFlat(),
+    getCategoryFlat(locale),
     getBrandsForCategory(categorySlug),
   ]);
 

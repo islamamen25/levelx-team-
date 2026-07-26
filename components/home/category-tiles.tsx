@@ -12,7 +12,7 @@ export async function CategoryTiles({ locale }: CategoryTilesProps) {
   // per category in the dashboard — nothing about this strip is hardcoded.
   const [t, categories] = await Promise.all([
     getTranslations({ locale, namespace: "home" }),
-    getCarouselCategories(),
+    getCarouselCategories(locale),
   ]);
 
   if (categories.length === 0) return null;

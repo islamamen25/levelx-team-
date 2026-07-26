@@ -1,7 +1,7 @@
 {
   "common": {
     "brand": "LevelX",
-    "tagline": "Premium refurbished electronics.",
+    "tagline": "Premium electronics & accessories.",
     "search": "Search",
     "cart": "Cart",
     "menu": "Menu",
@@ -12,7 +12,7 @@
     "buyNow": "Buy now",
     "outOfStock": "Out of stock",
     "inStock": "In stock",
-    "currency": "GBP",
+    "currency": "EGP",
     "learnMore": "Learn more",
     "backToTop": "Back to top",
     "from": "from"
@@ -28,12 +28,39 @@
     "help": "Need help?"
   },
   "hero": {
-    "eyebrow": "Verified refurbished tech",
+    "eyebrow": "Electronics & accessories",
     "headline": "Premium tech.\nUp to 70% less.",
-    "sub": "Expert-verified smartphones, laptops and more. Every device backed by a 1-year warranty and 30 days to change your mind.",
+    "sub": "Smartphones, laptops, accessories and more. Every order backed by a 1-year warranty and 30 days to change your mind.",
     "cta": "Shop deals",
     "ctaSecondary": "How it works",
-    "badge": "Up to −70%"
+    "badge": "Up to −70%",
+    "trust": {
+      "warranty": "1-year warranty",
+      "returns": "30-day returns",
+      "delivery": "Free delivery"
+    },
+    "slides": {
+      "s1": {
+        "badge": "⚡ Flash sale — ends midnight",
+        "headline": "Premium tech.\nUp to 70% less.",
+        "subline": "Smartphones, laptops, accessories and more. Every order backed by a 1-year warranty and 30-day returns.",
+        "ctaPrimary": "Shop flash deals",
+        "ctaSecondary": "How it works"
+      },
+      "s2": {
+        "badge": "New arrivals",
+        "headline": "MacBook.\nReady when\nyou are.",
+        "subline": "Every Apple laptop ships with a 1-year warranty — always.",
+        "ctaPrimary": "Explore MacBooks",
+        "ctaSecondary": "All laptops"
+      },
+      "s3": {
+        "badge": "Best value",
+        "headline": "PlayStation 5.\nReady to play.",
+        "subline": "Sony PS5 Disc Edition fully tested. Ready to play, with free delivery.",
+        "ctaPrimary": "Shop consoles"
+      }
+    }
   },
   "home": {
     "categoriesTitle": "Shop by category",
@@ -53,9 +80,7 @@
       "returns": "30-day returns",
       "returnsSub": "No-hassle refunds",
       "delivery": "Free delivery",
-      "deliverySub": "On all UK orders",
-      "verified": "Expert verified",
-      "verifiedSub": "Tested by certified engineers"
+      "deliverySub": "On all orders"
     }
   },
   "featured": {
@@ -99,8 +124,8 @@
     "premiumSub": "Like new"
   },
   "plp": {
-    "title": "Refurbished tech",
-    "subtitle": "Up to 70% less than new. Every device verified and backed by a 1-year warranty.",
+    "title": "Tech & accessories",
+    "subtitle": "Every product backed by a 1-year warranty and 30-day returns.",
     "resultsCount": "{count} products",
     "filters": "Filters",
     "clearFilters": "Clear all",
@@ -113,7 +138,9 @@
     "sort": "Sort",
     "sortRelevance": "Relevance",
     "sortPriceAsc": "Price: low to high",
-    "sortPriceDesc": "Price: high to low"
+    "sortPriceDesc": "Price: high to low",
+    "flashDeal": "Flash deal",
+    "save": "Save {amount}"
   },
   "checkout": {
     "title": "Checkout",
@@ -175,10 +202,10 @@
     "placeholder": "Ask about products...",
     "send": "Send",
     "thinking": "Thinking...",
-    "welcome": "Hi! I can help you find the perfect refurbished device. What are you looking for?"
+    "welcome": "Hi! I can help you find the right device or accessory. What are you looking for?"
   },
   "footer": {
-    "tagline": "Refurbished electronics you can trust.",
+    "tagline": "Electronics & accessories you can trust.",
     "shop": "Shop",
     "company": "Company",
     "support": "Support",

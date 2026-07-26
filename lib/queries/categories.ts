@@ -39,8 +39,16 @@ export type CarouselCategory = {
   color_key: string | null;
 };
 
+/** الاسم العربي عمود منفصل (name_ar) — فاضي/مسافات يُعامَل "غير مترجم"،
+ * نفس قاعدة "الفاضي" المستخدمة في product_translations (راجع COWORK.md). */
+function localizedName(name: string, nameAr: string | null | undefined, locale: string): string {
+  if (locale !== "ar") return name;
+  const trimmed = nameAr?.trim();
+  return trimmed || name;
+}
+
 // Categories the admin picked for the home page carousel, in their order.
-export async function getCarouselCategories(): Promise<CarouselCategory[]> {
+export async function getCarouselCategories(locale: string): Promise<CarouselCategory[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("categories");
@@ -48,7 +56,7 @@ export async function getCarouselCategories(): Promise<CarouselCategory[]> {
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("categories")
-    .select("id, name, slug, icon, color_key, display_name")
+    .select("id, name, name_ar, slug, icon, color_key, display_name")
     .eq("is_visible", true)
     .eq("in_carousel", true)
     .order("sort_order", { ascending: true })
@@ -59,7 +67,7 @@ export async function getCarouselCategories(): Promise<CarouselCategory[]> {
   return (data ?? []).map((c) => ({
     id: c.id,
     // display_name lets the admin shorten a long category name for the strip
-    name: c.display_name?.trim() || c.name,
+    name: c.display_name?.trim() || localizedName(c.name, c.name_ar, locale),
     slug: c.slug,
     icon: c.icon,
     color_key: c.color_key,
@@ -67,31 +75,31 @@ export async function getCarouselCategories(): Promise<CarouselCategory[]> {
 }
 
 // شجرة الأقسام المتداخلة — مُخزَّنة لمدة ساعة، قابلة للإبطال بـ tag
-export async function getCategoryTree(): Promise<CategoryNode[]> {
+export async function getCategoryTree(locale: string): Promise<CategoryNode[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("categories");
 
   const supabase = createSupabasePublicClient();
-  const { data, error } = await supabase.rpc("get_category_tree");
+  const { data, error } = await supabase.rpc("get_category_tree", { _lang: locale });
   if (error) throw new Error(`get_category_tree: ${error.message}`);
   return (data ?? []) as CategoryNode[];
 }
 
 // قائمة مسطّحة مع depth + path — للـ Breadcrumbs وgenerateStaticParams
-export async function getCategoryFlat(): Promise<CategoryFlat[]> {
+export async function getCategoryFlat(locale: string): Promise<CategoryFlat[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("categories");
 
   const supabase = createSupabasePublicClient();
-  const { data, error } = await supabase.rpc("get_category_flat");
+  const { data, error } = await supabase.rpc("get_category_flat", { _lang: locale });
   if (error) throw new Error(`get_category_flat: ${error.message}`);
   return (data ?? []) as CategoryFlat[];
 }
 
 // قسم واحد بالـ slug
-export async function getCategoryBySlug(slug: string): Promise<CategoryFlat | null> {
+export async function getCategoryBySlug(slug: string, locale: string): Promise<CategoryFlat | null> {
   "use cache";
   cacheLife("hours");
   cacheTag("categories", `category:${slug}`);
@@ -99,13 +107,20 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryFlat | nu
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("categories")
-    .select("id, name, slug, parent_id")
+    .select("id, name, name_ar, slug, parent_id")
     .eq("slug", slug)
     .eq("is_visible", true)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
-  return { ...data, depth: 0, path: slug } as CategoryFlat;
+  return {
+    id: data.id,
+    name: localizedName(data.name, data.name_ar, locale),
+    slug: data.slug,
+    parent_id: data.parent_id,
+    depth: 0,
+    path: slug,
+  };
 }
 
 // كل الأقسام (بما فيها المخفية) — للـ Admin Dashboard

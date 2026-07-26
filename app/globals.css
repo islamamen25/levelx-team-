@@ -121,6 +121,38 @@
   }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   ARABIC TYPOGRAPHY
+   غير مُدرَج في @layer عمداً — لازم يتغلّب على @layer base.
+   Inter لا يحتوي محارف عربية إطلاقاً، فبدون هذه القاعدة
+   كل حرف عربي يسقط على خط النظام الاحتياطي (مختلف على كل OS).
+───────────────────────────────────────────────────────────── */
+:lang(ar) {
+  font-family: var(--font-tajawal), var(--font-inter), sans-serif;
+}
+
+/* الخط العربي متّصل — التتبّع السالب يسحق مواضع الوصل بين الحروف.
+   !important لأن المكوّنات تمرّر letterSpacing عبر style={{}} inline. */
+:lang(ar) :is(h1, h2, h3, h4, .text-display, .text-display-lg, .text-display-xl) {
+  letter-spacing: 0 !important;
+  line-height: 1.32 !important;
+}
+:lang(ar) :is(p, li) {
+  line-height: 1.85;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   HERO SCRIM DIRECTION
+   الحاجب لازم يقع خلف النص. لوحة النص تتبع اتجاه الصفحة،
+   فلو الاتجاه فيزيائي (to right) يقع الحاجب في الجهة المقابلة
+   ويصبح العنوان الأبيض على أفتح جزء من الخلفية.
+───────────────────────────────────────────────────────────── */
+/* linear-gradient(to X) يضع أول توقّف (الأغمق) عند الحافة المقابلة لـ X.
+   LTR: لوحة النص تبدأ يساراً → نريد الأغمق يساراً → to right
+   RTL: لوحة النص تبدأ يميناً → نريد الأغمق يميناً → to left        */
+:root       { --scrim-dir: right; }
+[dir="rtl"] { --scrim-dir: left;  }
+
 /* ── Hero slider progress bar ── */
 @keyframes slide-progress {
   from { width: 0%; }

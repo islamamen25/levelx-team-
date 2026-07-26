@@ -64,10 +64,10 @@ export function ChatWidget() {
         <button
           type="button"
           onClick={handleFabClick}
-          className="fixed bottom-4 end-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-mint)] text-white shadow-[0_8px_24px_-6px_oklch(0.64_0.10_184/0.4)] transition-transform hover:scale-105 active:scale-95"
+          className="fixed bottom-4 end-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-mint)] text-white shadow-[0_8px_24px_-6px_oklch(0.64_0.10_184/0.4)] transition-transform hover:scale-105 active:scale-95 md:h-14 md:w-14"
           aria-label={t("title")}
         >
-          <MessageCircle className="h-6 w-6" strokeWidth={2} />
+          <MessageCircle className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2} />
         </button>
       )}
 

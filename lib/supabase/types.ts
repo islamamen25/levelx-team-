@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -79,6 +81,7 @@ export type Database = {
           in_carousel: boolean
           is_visible: boolean
           name: string
+          name_ar: string | null
           parent_id: string | null
           slug: string
           sort_order: number
@@ -92,6 +95,7 @@ export type Database = {
           in_carousel?: boolean
           is_visible?: boolean
           name: string
+          name_ar?: string | null
           parent_id?: string | null
           slug: string
           sort_order?: number
@@ -105,6 +109,7 @@ export type Database = {
           in_carousel?: boolean
           is_visible?: boolean
           name?: string
+          name_ar?: string | null
           parent_id?: string | null
           slug?: string
           sort_order?: number
@@ -451,9 +456,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      category_subtree: { Args: { _parent: string }; Returns: Json }
+      category_subtree: {
+        Args: { _lang?: string; _parent: string }
+        Returns: Json
+      }
       get_category_flat: {
-        Args: never
+        Args: { _lang?: string }
         Returns: {
           depth: number
           id: string
@@ -463,7 +471,7 @@ export type Database = {
           slug: string
         }[]
       }
-      get_category_tree: { Args: never; Returns: Json }
+      get_category_tree: { Args: { _lang?: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
@@ -476,6 +484,7 @@ export type Database = {
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<

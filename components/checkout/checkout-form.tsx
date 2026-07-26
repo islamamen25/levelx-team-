@@ -10,8 +10,12 @@ interface CheckoutFormProps {
   locale: string;
 }
 
-function formatGBP(n: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(n);
+function formatEGP(n: number, locale: string) {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-EG", {
+    style: "currency",
+    currency: "EGP",
+    maximumFractionDigits: 0,
+  }).format(n);
 }
 
 const inputClass =
@@ -131,7 +135,7 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
                       </button>
                     </div>
                   </div>
-                  <span className="text-sm font-bold text-ceramic">{formatGBP(item.price * item.qty)}</span>
+                  <span className="text-sm font-bold text-ceramic">{formatEGP(item.price * item.qty, locale)}</span>
                 </li>
               ))}
             </ul>
@@ -140,7 +144,7 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
             <div className="space-y-2.5 border-t border-[var(--color-iron)] pt-4">
               <div className="flex justify-between text-sm">
                 <span className="text-slate">{t("subtotal")}</span>
-                <span className="font-semibold text-ceramic">{formatGBP(subtotal)}</span>
+                <span className="font-semibold text-ceramic">{formatEGP(subtotal, locale)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate">{t("shippingFee")}</span>
@@ -148,11 +152,11 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate">{t("tax")}</span>
-                <span className="font-semibold text-ceramic">{formatGBP(vat)}</span>
+                <span className="font-semibold text-ceramic">{formatEGP(vat, locale)}</span>
               </div>
               <div className="flex justify-between border-t border-[var(--color-iron)] pt-3 text-base font-extrabold text-ceramic">
                 <span>{t("total")}</span>
-                <span>{formatGBP(total)}</span>
+                <span>{formatEGP(total, locale)}</span>
               </div>
             </div>
 
@@ -218,7 +222,7 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelClass}>{t("phone")}</label>
-                  <input required type="tel" autoComplete="tel" placeholder="+44 7700 900000" className={inputClass} />
+                  <input required type="tel" autoComplete="tel" placeholder="+20 100 123 4567" className={inputClass} />
                 </div>
               </div>
             </section>
@@ -235,11 +239,11 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
                 </div>
                 <div>
                   <label className={labelClass}>{t("city")}</label>
-                  <input required type="text" autoComplete="address-level2" placeholder="London" className={inputClass} />
+                  <input required type="text" autoComplete="address-level2" placeholder="Cairo" className={inputClass} />
                 </div>
                 <div>
                   <label className={labelClass}>{t("zip")}</label>
-                  <input required type="text" autoComplete="postal-code" placeholder="SW1A 1AA" className={inputClass} />
+                  <input required type="text" autoComplete="postal-code" placeholder="11511" className={inputClass} />
                 </div>
               </div>
             </section>
@@ -294,7 +298,7 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
                 className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-mint)] py-4 text-sm font-bold text-white transition-colors hover:bg-[var(--color-mint-hover)] active:scale-[0.99]"
               >
                 <Lock className="h-4 w-4" strokeWidth={2.5} />
-                {t("placeOrder")} · {formatGBP(total)}
+                {t("placeOrder")} · {formatEGP(total, locale)}
               </button>
               <p className="mt-3 text-center text-[11px] text-slate">{t("secure")}</p>
             </div>

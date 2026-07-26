@@ -4,8 +4,12 @@ import { Link } from "@/i18n/navigation";
 import { Star } from "lucide-react";
 import type { UIMessage } from "ai";
 
-function formatGBP(n: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(n);
+function formatEGP(n: number, locale: string) {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-EG", {
+    style: "currency",
+    currency: "EGP",
+    maximumFractionDigits: 0,
+  }).format(n);
 }
 
 interface ProductResult {
@@ -58,8 +62,8 @@ export function ChatMessage({ message, locale }: { message: UIMessage; locale: s
                       <div className="flex-1 min-w-0">
                         <p className="truncate text-xs font-semibold text-[var(--color-ceramic)]">{p.name}</p>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-[var(--color-ceramic)]">{formatGBP(p.price)}</span>
-                          <span className="text-[10px] text-[var(--color-slate)] line-through">{formatGBP(p.originalPrice)}</span>
+                          <span className="text-xs font-bold text-[var(--color-ceramic)]">{formatEGP(p.price, locale)}</span>
+                          <span className="text-[10px] text-[var(--color-slate)] line-through">{formatEGP(p.originalPrice, locale)}</span>
                           <span className="flex items-center gap-0.5 text-[10px] text-[var(--color-slate)]">
                             <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" strokeWidth={0} />
                             {p.rating}

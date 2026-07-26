@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { ArrowRight, Smartphone, Laptop, Gamepad2, ShieldCheck, RotateCcw, BadgeCheck } from "lucide-react";
+import { ArrowRight, Smartphone, Laptop, Gamepad2, ShieldCheck, RotateCcw } from "lucide-react";
 
 interface HeroProps {
   locale: string;
@@ -158,10 +158,6 @@ export function Hero({ locale }: HeroProps) {
             <span className="flex items-center gap-1.5">
               <RotateCcw className="h-3.5 w-3.5 text-[var(--color-mint)]" strokeWidth={2} aria-hidden />
               {locale === "ar" ? "إرجاع خلال 30 يوماً" : "30-day returns"}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <BadgeCheck className="h-3.5 w-3.5 text-[var(--color-mint)]" strokeWidth={2} aria-hidden />
-              {locale === "ar" ? "مفحوص من خبراء" : "Expert verified"}
             </span>
           </div>
         </div>

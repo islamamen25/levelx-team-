@@ -1,11 +1,12 @@
 import { getTranslations } from "next-intl/server";
-import { ShieldCheck, RotateCcw, Truck, BadgeCheck, type LucideIcon } from "lucide-react";
+import { ShieldCheck, RotateCcw, Truck, type LucideIcon } from "lucide-react";
 
-const ITEMS: { key: "warranty" | "returns" | "delivery" | "verified"; Icon: LucideIcon }[] = [
+/* "verified" (Expert verified / مفحوص من خبراء) أُزيل — إشارة ثقة خاصة
+   بالمنتجات المجدّدة، لا معنى لها في متجر يبيع منتجات جديدة. */
+const ITEMS: { key: "warranty" | "returns" | "delivery"; Icon: LucideIcon }[] = [
   { key: "warranty", Icon: ShieldCheck },
   { key: "returns",  Icon: RotateCcw   },
   { key: "delivery", Icon: Truck       },
-  { key: "verified", Icon: BadgeCheck  },
 ];
 
 interface TrustBannerProps {
@@ -24,7 +25,7 @@ export async function TrustBanner({ locale }: TrustBannerProps) {
         >
           {t("trustTitle")}
         </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {ITEMS.map(({ key, Icon }) => (
             <div
               key={key}

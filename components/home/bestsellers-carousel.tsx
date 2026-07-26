@@ -49,7 +49,9 @@ export function BestsellersCarousel({ products, locale }: BestsellersCarouselPro
               disabled={!canScrollLeft}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-iron)] bg-white text-ceramic transition-colors hover:border-ceramic disabled:opacity-30 disabled:hover:border-[var(--color-iron)]"
             >
-              <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+              {/* الأسهم مرآة في RTL: flex يعكس ترتيب الأزرار تلقائياً تبعاً لـdir،
+                  فالشيفرون لازم يُقلَب بصرياً ليطابق اتجاه الحركة الجديد. */}
+              <ChevronLeft className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} strokeWidth={2} />
             </button>
             <button
               type="button"
@@ -58,7 +60,7 @@ export function BestsellersCarousel({ products, locale }: BestsellersCarouselPro
               disabled={!canScrollRight}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-ceramic bg-ceramic text-white transition-colors hover:bg-ceramic/90 disabled:opacity-30"
             >
-              <ChevronRight className="h-5 w-5" strokeWidth={2} />
+              <ChevronRight className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} strokeWidth={2} />
             </button>
           </div>
         </div>

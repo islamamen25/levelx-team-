@@ -16,7 +16,7 @@ interface ProductPanelProps {
 const CONDITION_ORDER: ProductCondition[] = ["Premium", "Excellent", "Good", "Fair"];
 
 function formatEGP(n: number, locale: string) {
-  return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-EG", {
     style: "currency",
     currency: "EGP",
     maximumFractionDigits: 0,

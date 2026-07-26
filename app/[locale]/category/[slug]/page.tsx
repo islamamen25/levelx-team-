@@ -11,8 +11,9 @@ type Props = {
 };
 
 // ─── generateStaticParams: يُولَّد وقت البناء لكل الأقسام ────────────────────
+// لا يوجد request/locale وقت البناء — الاسم هنا غير مستخدم، فقط slug، لذا "en" آمن.
 export async function generateStaticParams() {
-  const categories = await getCategoryFlat();
+  const categories = await getCategoryFlat("en");
   return categories.map((c) => ({ slug: c.slug }));
 }
 
@@ -20,7 +21,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props) {
   const { locale, slug } = await params;
   const [category, t] = await Promise.all([
-    getCategoryBySlug(slug),
+    getCategoryBySlug(slug, locale),
     getTranslations({ locale, namespace: "plp" }),
   ]);
   if (!category) return { title: "Not Found" };
@@ -74,9 +75,9 @@ export default async function CategoryPage({ params }: Props) {
   const { locale, slug } = await params;
 
   const [category, allCategories, tree] = await Promise.all([
-    getCategoryBySlug(slug),
-    getCategoryFlat(),
-    getCategoryTree(),
+    getCategoryBySlug(slug, locale),
+    getCategoryFlat(locale),
+    getCategoryTree(locale),
   ]);
 
   if (!category) notFound();

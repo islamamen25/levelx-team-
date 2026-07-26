@@ -25,7 +25,7 @@ export function GmvChart() {
               tickLine={false}
               axisLine={false}
               tick={{ fontSize: 11, fill: "#6E6E73" }}
-              tickFormatter={(v) => `£${(v / 1000).toFixed(0)}k`}
+              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k EGP`}
             />
             <ChartTooltip content={<ChartTooltipContent />} />
             <defs>

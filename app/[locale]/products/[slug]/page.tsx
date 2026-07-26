@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Props) {
     title: `${product.name} — LevelX`,
     description: product.description
       ? product.description.slice(0, 155)
-      : `Buy refurbished ${product.name}. 1-year warranty, 30-day returns, fast delivery.`,
+      : `Buy ${product.name} at LevelX. 1-year warranty, 30-day returns, fast delivery.`,
   };
 }
 

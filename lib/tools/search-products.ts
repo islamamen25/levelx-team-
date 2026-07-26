@@ -13,7 +13,7 @@ import { vectorSearchProducts } from "@/lib/meilisearch";
 
 export const searchProductsTool = tool({
   description:
-    "Search the LevelX catalogue for refurbished electronics using semantic intent. " +
+    "Search the LevelX catalogue for electronics and accessories using semantic intent. " +
     "Pass the user's natural-language need (e.g. 'gaming phone under 1000', " +
     "'lightweight laptop for design students'); the engine does the matching.",
   inputSchema: z.object({

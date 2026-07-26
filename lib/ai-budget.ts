@@ -207,7 +207,7 @@ export async function getAiFallbackResponse(userMessage: string): Promise<Fallba
       return {
         role: "assistant",
         content:
-          "I'd love to help! Browse our full [product catalogue](/products) for great refurbished deals.\n\n" +
+          "I'd love to help! Browse our full [product catalogue](/products) for great deals.\n\n" +
           "_Our AI assistant is temporarily unavailable. We'll be back shortly._",
       };
     }
@@ -222,7 +222,7 @@ export async function getAiFallbackResponse(userMessage: string): Promise<Fallba
     return {
       role: "assistant",
       content:
-        `Here are some great refurbished options:\n\n${lines.join("\n")}\n\n` +
+        `Here are some great options:\n\n${lines.join("\n")}\n\n` +
         `All devices come with a **1-year warranty** and **30-day free returns**.\n\n` +
         `_Our AI assistant is temporarily unavailable — showing curated recommendations instead._`,
     };
@@ -230,7 +230,7 @@ export async function getAiFallbackResponse(userMessage: string): Promise<Fallba
     return {
       role: "assistant",
       content:
-        "I'd love to help! Browse our full [product catalogue](/products) for great refurbished deals.\n\n" +
+        "I'd love to help! Browse our full [product catalogue](/products) for great deals.\n\n" +
         "_Our AI assistant is temporarily unavailable. We'll be back shortly._",
     };
   }

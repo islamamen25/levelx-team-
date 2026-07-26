@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import Image from "next/image";
 import { Link } from "@/i18n/navigation";
 import { getProductsFiltered } from "@/lib/queries/products";
 import { FeaturedCarousel } from "@/components/home/featured-carousel";
@@ -45,21 +46,18 @@ export async function Featured({ locale }: FeaturedProps) {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(260px,1fr)_2fr] lg:grid-cols-[minmax(300px,1fr)_2.5fr]">
 
           {/* Left: lifestyle image */}
-          <div
-            className="hidden overflow-hidden rounded-2xl md:block"
-            style={{
-              background: "linear-gradient(160deg, #6db5a0 0%, #3d8b72 40%, #2a6b55 100%)",
-              minHeight: "420px",
-            }}
-          >
-            <div className="flex h-full flex-col items-center justify-end p-6">
-              <div className="mb-4 flex items-end gap-3">
-                <span style={{ fontSize: "3rem", lineHeight: 1 }} aria-hidden>🎧</span>
-                <span style={{ fontSize: "2rem", lineHeight: 1, opacity: 0.7 }} aria-hidden>📱</span>
-                <span style={{ fontSize: "2.5rem", lineHeight: 1, opacity: 0.8 }} aria-hidden>⌚</span>
-              </div>
-              <p className="text-center text-xs font-medium text-white/60">
-                {isAr ? "تكنولوجيا مجددة بعناية" : "Carefully refurbished tech"}
+          <div className="relative hidden overflow-hidden rounded-2xl md:block" style={{ minHeight: "420px" }}>
+            <Image
+              src="https://images.unsplash.com/photo-1760520338238-4137dd2dc28f?w=800&q=80&fit=crop"
+              alt=""
+              fill
+              sizes="(max-width: 1024px) 300px, 380px"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 flex flex-col items-center p-6">
+              <p className="text-center text-xs font-medium text-white/80">
+                {isAr ? "تكنولوجيا مختارة بعناية" : "Carefully curated tech"}
               </p>
             </div>
           </div>

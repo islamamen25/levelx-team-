@@ -12,6 +12,7 @@ interface FeaturedCarouselProps {
 }
 
 export function FeaturedCarousel({ deals, locale, title }: FeaturedCarouselProps) {
+  const isAr = locale === "ar";
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -48,7 +49,9 @@ export function FeaturedCarousel({ deals, locale, title }: FeaturedCarouselProps
             disabled={!canScrollLeft}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-iron)] bg-white text-ceramic transition-colors hover:border-ceramic disabled:opacity-30"
           >
-            <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+            {/* الأسهم مرآة في RTL: flex يعكس ترتيب الأزرار تلقائياً تبعاً لـdir،
+                فالشيفرون لازم يُقلَب بصرياً ليطابق اتجاه الحركة الجديد. */}
+            <ChevronLeft className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} strokeWidth={2} />
           </button>
           <button
             type="button"
@@ -57,7 +60,7 @@ export function FeaturedCarousel({ deals, locale, title }: FeaturedCarouselProps
             disabled={!canScrollRight}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-ceramic bg-ceramic text-white transition-colors hover:bg-ceramic/90 disabled:opacity-30"
           >
-            <ChevronRight className="h-5 w-5" strokeWidth={2} />
+            <ChevronRight className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} strokeWidth={2} />
           </button>
         </div>
       </div>

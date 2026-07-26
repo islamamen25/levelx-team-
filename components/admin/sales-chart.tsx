@@ -6,7 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 import { DAILY_SALES } from "@/lib/mock-dashboard";
 
 const chartConfig: ChartConfig = {
-  sales:  { label: "Sales (£)", color: "#00A699" },
+  sales:  { label: "Sales (EGP)", color: "#00A699" },
   orders: { label: "Orders",    color: "#6E6E73" },
 };
 
@@ -32,7 +32,7 @@ export function SalesChart() {
               tickLine={false}
               axisLine={false}
               tick={{ fontSize: 11, fill: "#6E6E73" }}
-              tickFormatter={(v) => `£${(v / 1000).toFixed(0)}k`}
+              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k EGP`}
             />
             <YAxis
               yAxisId="orders"

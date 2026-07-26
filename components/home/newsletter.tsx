@@ -21,15 +21,15 @@ export function Newsletter({ locale }: NewsletterProps) {
             style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)", fontWeight: 800, letterSpacing: "-0.02em" }}
           >
             {isAr ? (
-              <>احصل على <span className="text-[var(--color-mint)]">خصم £15</span> على طلبك الأول.</>
+              <>احصل على <span className="text-[var(--color-mint)]">خصم 100 ج.م.</span> على طلبك الأول.</>
             ) : (
-              <>Get <span className="text-[var(--color-mint)]">£15 off</span> your first order.</>
+              <>Get <span className="text-[var(--color-mint)]">100 EGP off</span> your first order.</>
             )}
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-slate">
             {isAr
-              ? "على الطلبات بقيمة £250 أو أكثر، عند الاشتراك في رسائلنا."
-              : "On orders of £250 or more, when you sign up for emails."}
+              ? "على الطلبات بقيمة 1,000 ج.م. أو أكثر، عند الاشتراك في رسائلنا."
+              : "On orders of 1,000 EGP or more, when you sign up for emails."}
           </p>
 
           {/* Email form */}
@@ -46,9 +46,11 @@ export function Newsletter({ locale }: NewsletterProps) {
                 aria-hidden
               />
             </div>
+            {/* بلون المنت — كان bg-ceramic (أسود)، بينما كل زر أساسي آخر
+                في الموقع (الهيرو، الدفع) يستخدم لون المنت. */}
             <button
               type="submit"
-              className="rounded-xl bg-ceramic px-6 py-3.5 text-sm font-bold text-white transition-colors hover:bg-ceramic/90"
+              className="rounded-xl bg-[var(--color-mint)] px-6 py-3.5 text-sm font-bold text-white transition-colors hover:bg-[var(--color-mint-hover)]"
             >
               {isAr ? "اشترك" : "Sign up"}
             </button>
@@ -69,8 +71,8 @@ export function Newsletter({ locale }: NewsletterProps) {
           {expanded && (
             <p className="mx-auto mt-3 max-w-lg text-xs leading-relaxed text-slate">
               {isAr
-                ? "اشترك في رسائلنا واحصل على خصم £15 على أول طلب بقيمة £250 أو أكثر. يُطبق تلقائياً عند الدفع. يمكنك إلغاء الاشتراك في أي وقت."
-                : "Subscribe to our emails and get £15 off your first order of £250 or more. Applied automatically at checkout. You can unsubscribe at any time."}
+                ? "اشترك في رسائلنا واحصل على خصم 100 ج.م. على أول طلب بقيمة 1,000 ج.م. أو أكثر. يُطبق تلقائياً عند الدفع. يمكنك إلغاء الاشتراك في أي وقت."
+                : "Subscribe to our emails and get 100 EGP off your first order of 1,000 EGP or more. Applied automatically at checkout. You can unsubscribe at any time."}
             </p>
           )}
         </div>
