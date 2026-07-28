@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { Package, Paintbrush, FolderTree, ArrowRight } from "lucide-react";
+import { Package, Paintbrush, FolderTree, ShoppingCart, ArrowRight } from "lucide-react";
 import { KpiCard } from "@/components/admin/kpi-card";
 import { DashboardCharts } from "@/components/admin/dashboard-charts";
 import { KPI_DATA } from "@/lib/mock-dashboard";
@@ -59,6 +59,13 @@ export default async function DashboardPage({ params }: Props) {
         {/* Quick Nav */}
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
+            {
+              href:  `/${locale}/dashboard/orders`,
+              icon:  ShoppingCart,
+              title: locale === "ar" ? "الطلبات" : "Orders",
+              desc:  locale === "ar" ? "متابعة الطلبات وتأكيدها وتحديث حالتها" : "Track, confirm & update order status",
+              color: "bg-amber-50 text-amber-600",
+            },
             {
               href:  `/${locale}/dashboard/catalog`,
               icon:  Package,

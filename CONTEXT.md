@@ -22,9 +22,7 @@ now real** (Cash on Delivery, §2.P). What remains, in priority order:
 1. 🔴 **Real product data — the actual bottleneck.** 61 products exist, **only 1 is
    sellable**. Of the 60 inactive: **59 have no variant (⇒ no price)**, 54 have no images,
    9 lack an Arabic translation, 6 lack a category. Needs owner pricing input.
-2. 🟠 **Admin orders screen** — orders are written but there is no UI to read or fulfil
-   them. Currently SQL / Supabase dashboard only.
-3. 🟠 **Migration drift** — `supabase/migrations/` cannot rebuild the live schema. 6 of
+2. 🟠 **Migration drift** — `supabase/migrations/` cannot rebuild the live schema. 6 of
    12 `categories` columns exist in no migration. On a free tier that auto-pauses, this
    is real risk. Needs a baseline migration.
 4. **Paymob / Bosta / WhatsApp** — still zero code. `orders.payment_method` already
@@ -139,7 +137,15 @@ inputs and discarded them, then told the customer "Order placed!". No `orders` t
   `LX-260728-1001`, correct Arabic storage, `2600 + 364 VAT = 2964`, cart cleared only
   after a successful response. An unknown variant returns `409 ITEM_UNAVAILABLE` and
   leaves **zero** orphan rows (atomicity confirmed). Test rows deleted afterwards.
-- ⚠️ **No admin orders screen yet.**
+- **Admin orders screen** — `app/[locale]/(admin)/dashboard/orders/page.tsx` +
+  `components/admin/order-table.tsx` + `lib/queries/orders.ts` +
+  `app/api/admin/orders/route.ts` (PATCH status, `requireAdmin()`). Linked from the
+  dashboard quick-nav — the Categories page was once unreachable for exactly this reason.
+  Search by number/name/phone/city, filter by status, expand a row for items + address +
+  notes, tap-to-call the customer. Revenue counts **delivered only**.
+  Verified: PostgREST embed returns 200 (a malformed embed 400s), and an unauthenticated
+  request to the page leaks **zero** order PII — checked against a seeded order with
+  unique markers, all absent from the response.
 
 ### O. n8n — product import pipeline is LIVE
 Instance moved to **`https://n8n.islamai.shop`** (old `n8n.srv1344298.hstgr.cloud` is gone).

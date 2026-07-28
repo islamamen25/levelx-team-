@@ -216,8 +216,13 @@ success screen.
   as the authoritative figure. **Change both together.**
 - **Order numbers** are `LX-YYMMDD-NNNN` from `order_number_seq` — human-quotable,
   because customers read them back over the phone.
-- **No admin orders screen exists yet.** Orders can currently only be read via SQL or
-  the Supabase dashboard. Worth building before real volume arrives.
+- **Admin screen:** `/[locale]/dashboard/orders` — list, search, filter, expand for items
+  and delivery address, and change status via `PATCH /api/admin/orders?id=`. **Status is
+  the only mutable field**; customer details and money are immutable because an order is a
+  historical record, and letting the dashboard rewrite totals would defeat the server-side
+  pricing in the RPC.
+- Revenue on that screen counts **delivered orders only** — COD money is not real until
+  the courier collects it.
 
 ### ⚠️ Known gap — the RPC is reachable without the app
 `create_cod_order()` is granted to `anon` (guests must be able to order), which means it
