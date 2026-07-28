@@ -124,6 +124,121 @@ export type Database = {
           },
         ]
       }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          price: number
+          product_id: string | null
+          product_name: string
+          qty: number
+          sku_code: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          price: number
+          product_id?: string | null
+          product_name: string
+          qty: number
+          sku_code?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          price?: number
+          product_id?: string | null
+          product_name?: string
+          qty?: number
+          sku_code?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          address: string
+          city: string
+          created_at: string
+          customer_name: string
+          email: string | null
+          id: string
+          notes: string | null
+          order_number: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          phone: string
+          postal_code: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal: number
+          total: number
+          updated_at: string
+          vat: number
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string
+          customer_name: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          order_number: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          phone: string
+          postal_code?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal: number
+          total: number
+          updated_at?: string
+          vat: number
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string
+          customer_name?: string
+          email?: string | null
+          id?: string
+          notes?: string | null
+          order_number?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          phone?: string
+          postal_code?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          vat?: number
+        }
+        Relationships: []
+      }
       pending_approvals: {
         Row: {
           created_at: string | null
@@ -460,6 +575,19 @@ export type Database = {
         Args: { _lang?: string; _parent: string }
         Returns: Json
       }
+      create_cod_order: {
+        Args: {
+          p_address: string
+          p_city: string
+          p_customer_name: string
+          p_email?: string
+          p_items?: Json
+          p_notes?: string
+          p_phone: string
+          p_postal_code?: string
+        }
+        Returns: string
+      }
       get_category_flat: {
         Args: { _lang?: string }
         Returns: {
@@ -475,6 +603,13 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
+      order_status:
+        | "pending"
+        | "confirmed"
+        | "shipped"
+        | "delivered"
+        | "cancelled"
+      payment_method: "cod" | "paymob"
       product_condition: "Premium" | "Excellent" | "Good" | "Fair"
     }
     CompositeTypes: {
@@ -603,6 +738,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      order_status: [
+        "pending",
+        "confirmed",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
+      payment_method: ["cod", "paymob"],
       product_condition: ["Premium", "Excellent", "Good", "Fair"],
     },
   },

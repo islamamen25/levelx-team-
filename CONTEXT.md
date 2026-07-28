@@ -10,13 +10,27 @@
 
 ## 1. Current Plan
 
-The store is **built, deployed, secured, and verified end-to-end on production**. No feature build is in flight. What remains is optional polish and unbuilt integrations:
+> ⚠️ **Corrected 2026-07-28.** The line below ("built, deployed, secured, verified
+> end-to-end") was **true of the storefront but not of checkout**. A posture assessment
+> that quarried the live DB found the checkout persisted nothing — no `orders` table
+> existed. That is now fixed (§2.P). The catalog finding is still open and is the real
+> blocker.
 
-1. **Verify/build external integrations** — Paymob payments, Bosta logistics, WhatsApp OTP (env keys reserved but no code yet)
-2. **Meilisearch** — confirm it indexes live DB products (`scripts/seed-meilisearch.ts`, `app/api/search/semantic`)
-3. **Real product data** — only 1 active product exists; 14 corrupt import artifacts are hidden (see §2.J)
-4. **Cosmetic:** move `pg_net` out of `public` schema (only remaining advisor WARN; left intentionally)
-5. **Optional:** `app/[locale]/(shop)/layout.tsx` — not currently needed
+The **storefront** is built, deployed, secured, and verified on production. **Checkout is
+now real** (Cash on Delivery, §2.P). What remains, in priority order:
+
+1. 🔴 **Real product data — the actual bottleneck.** 61 products exist, **only 1 is
+   sellable**. Of the 60 inactive: **59 have no variant (⇒ no price)**, 54 have no images,
+   9 lack an Arabic translation, 6 lack a category. Needs owner pricing input.
+2. 🟠 **Admin orders screen** — orders are written but there is no UI to read or fulfil
+   them. Currently SQL / Supabase dashboard only.
+3. 🟠 **Migration drift** — `supabase/migrations/` cannot rebuild the live schema. 6 of
+   12 `categories` columns exist in no migration. On a free tier that auto-pauses, this
+   is real risk. Needs a baseline migration.
+4. **Paymob / Bosta / WhatsApp** — still zero code. `orders.payment_method` already
+   reserves `'paymob'`.
+5. **Meilisearch** — semantic search over 1 product has little value until (1) is done.
+6. **Cosmetic:** `pg_net` in `public` schema (advisor WARN, left intentionally).
 
 ---
 
@@ -102,6 +116,30 @@ See §4 for the full story; the short version:
 - **Production branch is `master`** — set via **Settings → Environments → Production → Branch Tracking** (there is no separate "Production Branch" field, and Vercel does *not* follow GitHub's default-branch change)
 - Env vars set for Production + Preview: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `REVALIDATE_SECRET`
 - Build passes: 85 pages, locale routes `◐` (Partial Prerender), API routes `ƒ` (Dynamic)
+
+### P. Checkout — Cash on Delivery, orders now persist *(2026-07-28)*
+Until this change `components/checkout/checkout-form.tsx` submitted to nothing: the handler
+was `clearCart(); setPlaced(true);`. It collected card number, expiry and CVC in plain
+inputs and discarded them, then told the customer "Order placed!". No `orders` table existed.
+
+- **Migration `0003_orders_cod.sql`** — `orders` + `order_items`, `order_status` and
+  `payment_method` enums, `order_number_seq`.
+- **`create_cod_order()`** `SECURITY DEFINER` RPC is the only write path — atomic
+  (order+items in one transaction) and price-authoritative (client sends `variant_id`+`qty`
+  only; prices/VAT/total computed from `variants` server-side).
+- **Card fields deleted**, not wired up — card collection belongs behind Paymob, which
+  does not exist yet. Replaced with a COD notice; trust badges changed from
+  SSL/Encrypted/Buyer-protection to no-prepayment/inspect-first/30-day-returns.
+- **VAT corrected 20% → 14%.** The 20% was also baked into the `tax` *translation label*
+  in both locales, not just the calculation — a UK-template leftover, like the `£` symbols
+  removed earlier.
+- **RLS:** no SELECT policy for `anon` on either table — verified live that `anon` sees 0
+  rows while an order exists.
+- **Verified end-to-end:** a real order placed through the browser UI produced
+  `LX-260728-1001`, correct Arabic storage, `2600 + 364 VAT = 2964`, cart cleared only
+  after a successful response. An unknown variant returns `409 ITEM_UNAVAILABLE` and
+  leaves **zero** orphan rows (atomicity confirmed). Test rows deleted afterwards.
+- ⚠️ **No admin orders screen yet.**
 
 ### O. n8n — product import pipeline is LIVE
 Instance moved to **`https://n8n.islamai.shop`** (old `n8n.srv1344298.hstgr.cloud` is gone).

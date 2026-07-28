@@ -2,13 +2,21 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link, useRouter } from "@/i18n/navigation";
-import { Lock, ShieldCheck, CreditCard, CheckCircle2, ShoppingBag, Minus, Plus, Trash2 } from "lucide-react";
+import { Link } from "@/i18n/navigation";
+import { Banknote, ShieldCheck, PackageCheck, CheckCircle2, ShoppingBag, Minus, Plus, Trash2 } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 
 interface CheckoutFormProps {
   locale: string;
 }
+
+/**
+ * Egypt standard VAT. This is the *display* rate — the authoritative figure is
+ * recomputed server-side in create_cod_order() (migration 0003), so the two must
+ * be kept in step. Was hardcoded 0.2 (a UK-template leftover, alongside the £
+ * symbols removed earlier).
+ */
+const VAT_RATE = 0.14;
 
 function formatEGP(n: number, locale: string) {
   return new Intl.NumberFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-EG", {
@@ -25,9 +33,9 @@ const labelClass = "block text-xs font-semibold uppercase tracking-wider text-sl
 
 export function CheckoutForm({ locale }: CheckoutFormProps) {
   const t = useTranslations("checkout");
-  const [cardFocused, setCardFocused] = useState(false);
-  const [placed, setPlaced] = useState(false);
-  const router = useRouter();
+  const [placedNumber, setPlacedNumber] = useState<string | null>(null);
+  const [submitting,   setSubmitting]   = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
 
   const items      = useCartStore((s) => s.items);
   const updateQty  = useCartStore((s) => s.updateQty);
@@ -35,16 +43,58 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
   const clearCart  = useCartStore((s) => s.clearCart);
 
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-  const vat      = Math.round(subtotal * 0.2);
+  const vat      = Math.round(subtotal * VAT_RATE);
   const total    = subtotal + vat;
 
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+
+    const fd = new FormData(e.currentTarget);
+    const payload = {
+      customer_name: `${fd.get("firstName") ?? ""} ${fd.get("lastName") ?? ""}`.trim(),
+      phone:         String(fd.get("phone") ?? "").trim(),
+      address:       String(fd.get("address") ?? "").trim(),
+      city:          String(fd.get("city") ?? "").trim(),
+      email:         String(fd.get("email") ?? "").trim(),
+      postal_code:   String(fd.get("zip") ?? "").trim(),
+      notes:         String(fd.get("notes") ?? "").trim(),
+      // Prices deliberately omitted — the server recomputes them from the DB.
+      items: items.map((i) => ({ variant_id: i.variantId, qty: i.qty })),
+    };
+
+    try {
+      const res  = await fetch("/api/orders", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setError(data?.error === "ITEM_UNAVAILABLE" ? t("errorUnavailable") : t("errorGeneric"));
+        return;
+      }
+
+      // Only clear the cart once the order is safely persisted.
+      setPlacedNumber(data.order_number);
+      clearCart();
+    } catch {
+      setError(t("errorGeneric"));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   // ── Empty cart screen ──────────────────────────────
-  if (items.length === 0 && !placed) {
+  if (items.length === 0 && !placedNumber) {
     return (
       <div className="container-px mx-auto flex flex-col items-center justify-center py-24 text-center">
         <ShoppingBag className="h-16 w-16 text-[var(--color-iron)]" strokeWidth={1.5} />
         <h1 className="mt-6 text-2xl font-extrabold text-ceramic">{t("emptyCart")}</h1>
-        <p className="mt-2 text-sm text-slate">Add items from the store to continue</p>
+        <p className="mt-2 text-sm text-slate">{t("emptyCartSub")}</p>
         <Link
           href="/products"
           locale={locale as "en" | "ar"}
@@ -57,18 +107,30 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
   }
 
   // ── Order placed screen ────────────────────────────
-  if (placed) {
+  if (placedNumber) {
     return (
       <div className="container-px mx-auto flex flex-col items-center justify-center py-24 text-center">
         <CheckCircle2 className="h-16 w-16 text-emerald-500" strokeWidth={1.5} />
-        <h1 className="mt-6 text-2xl font-extrabold text-ceramic">Order placed!</h1>
-        <p className="mt-2 text-sm text-slate">We&#39;ll send you a confirmation email shortly.</p>
+        <h1 className="mt-6 text-2xl font-extrabold text-ceramic">{t("orderPlaced")}</h1>
+
+        {/* The order number is the customer's only handle on this order — they
+            read it back to us on the phone, so make it prominent and copyable. */}
+        <div className="mt-5 rounded-2xl border border-[var(--color-iron)] bg-white px-6 py-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate">
+            {t("orderNumberLabel")}
+          </p>
+          <p dir="ltr" className="mt-1 select-all font-mono text-lg font-extrabold text-ceramic">
+            {placedNumber}
+          </p>
+        </div>
+
+        <p className="mt-4 max-w-sm text-sm text-slate">{t("orderConfirmCall")}</p>
         <Link
           href="/"
           locale={locale as "en" | "ar"}
           className="mt-6 rounded-full bg-[var(--color-mint)] px-6 py-3 text-sm font-bold text-white transition hover:bg-[var(--color-mint-hover)]"
         >
-          Back to store
+          {t("backToStore")}
         </Link>
       </div>
     );
@@ -160,15 +222,16 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
               </div>
             </div>
 
-            {/* Trust row */}
+            {/* Trust row — COD signals; the previous SSL/Encrypted/Buyer-protection
+                trio described card payment, which no longer happens here. */}
             <div className="mt-5 flex items-center justify-center gap-4 border-t border-[var(--color-iron)] pt-4">
               {[
-                { Icon: ShieldCheck, label: "SSL secure"       },
-                { Icon: Lock,        label: "Encrypted"        },
-                { Icon: CheckCircle2,label: "Buyer protection" },
+                { Icon: Banknote,     label: t("trustNoPrepay") },
+                { Icon: PackageCheck, label: t("trustInspect")  },
+                { Icon: ShieldCheck,  label: t("trustReturns")  },
               ].map(({ Icon, label }) => (
                 <div key={label} className="flex items-center gap-1 text-[10px] text-slate">
-                  <Icon className="h-3.5 w-3.5 text-[var(--color-mint)]" strokeWidth={2} />
+                  <Icon className="h-3.5 w-3.5 flex-shrink-0 text-[var(--color-mint)]" strokeWidth={2} />
                   {label}
                 </div>
               ))}
@@ -194,14 +257,7 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
             </p>
           </div>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              clearCart();
-              setPlaced(true);
-            }}
-            className="space-y-8"
-          >
+          <form onSubmit={handleSubmit} className="space-y-8">
             {/* Contact */}
             <section>
               <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-ceramic">
@@ -209,20 +265,22 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
               </h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className={labelClass}>{t("firstName")}</label>
-                  <input required type="text" autoComplete="given-name" placeholder="Jane" className={inputClass} />
+                  <label htmlFor="firstName" className={labelClass}>{t("firstName")}</label>
+                  <input id="firstName" name="firstName" required type="text" autoComplete="given-name" className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>{t("lastName")}</label>
-                  <input required type="text" autoComplete="family-name" placeholder="Smith" className={inputClass} />
+                  <label htmlFor="lastName" className={labelClass}>{t("lastName")}</label>
+                  <input id="lastName" name="lastName" required type="text" autoComplete="family-name" className={inputClass} />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className={labelClass}>{t("email")}</label>
-                  <input required type="email" autoComplete="email" placeholder="jane@example.com" className={inputClass} />
+                  {/* Not required: for COD the phone is the contact that matters,
+                      and many Egyptian customers order without an email address. */}
+                  <label htmlFor="email" className={labelClass}>{t("email")}</label>
+                  <input id="email" name="email" type="email" autoComplete="email" className={inputClass} />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className={labelClass}>{t("phone")}</label>
-                  <input required type="tel" autoComplete="tel" placeholder="+20 100 123 4567" className={inputClass} />
+                  <label htmlFor="phone" className={labelClass}>{t("phone")}</label>
+                  <input id="phone" name="phone" required type="tel" dir="ltr" autoComplete="tel" placeholder="01X XXXX XXXX" className={inputClass} />
                 </div>
               </div>
             </section>
@@ -234,71 +292,64 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
               </h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className={labelClass}>{t("address")}</label>
-                  <input required type="text" autoComplete="street-address" placeholder="123 High Street" className={inputClass} />
+                  <label htmlFor="address" className={labelClass}>{t("address")}</label>
+                  <input id="address" name="address" required type="text" autoComplete="street-address" className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>{t("city")}</label>
-                  <input required type="text" autoComplete="address-level2" placeholder="Cairo" className={inputClass} />
+                  <label htmlFor="city" className={labelClass}>{t("city")}</label>
+                  <input id="city" name="city" required type="text" autoComplete="address-level2" className={inputClass} />
                 </div>
                 <div>
-                  <label className={labelClass}>{t("zip")}</label>
-                  <input required type="text" autoComplete="postal-code" placeholder="11511" className={inputClass} />
+                  {/* Postcodes are rarely used in Egyptian addressing — optional. */}
+                  <label htmlFor="zip" className={labelClass}>{t("zip")}</label>
+                  <input id="zip" name="zip" type="text" autoComplete="postal-code" className={inputClass} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="notes" className={labelClass}>{t("notes")}</label>
+                  <textarea
+                    id="notes"
+                    name="notes"
+                    rows={2}
+                    maxLength={1000}
+                    placeholder={t("notesPlaceholder")}
+                    className={inputClass}
+                  />
                 </div>
               </div>
             </section>
 
-            {/* Payment */}
+            {/* Payment — Cash on Delivery only.
+                This section previously collected card number, expiry and CVC in
+                plain inputs while the form submitted nothing anywhere. Card
+                collection is removed rather than wired up: taking card details
+                belongs behind Paymob, which is not integrated yet. */}
             <section>
               <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-ceramic">
                 {t("payment")}
               </h2>
-              <div className="space-y-4">
+              <div className="flex items-start gap-3 rounded-2xl border border-[var(--color-mint)] bg-[var(--color-mint-soft)] p-4">
+                <Banknote className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--color-mint)]" strokeWidth={2} aria-hidden />
                 <div>
-                  <label className={labelClass}>{t("cardNumber")}</label>
-                  <div className="relative">
-                    <input
-                      required
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="cc-number"
-                      placeholder="1234 5678 9012 3456"
-                      onFocus={() => setCardFocused(true)}
-                      onBlur={() => setCardFocused(false)}
-                      className={[inputClass, "pe-12", cardFocused ? "border-[var(--color-mint)] ring-2 ring-[var(--color-mint)]/15" : ""].join(" ")}
-                    />
-                    <CreditCard
-                      className="absolute end-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate"
-                      strokeWidth={1.5}
-                      aria-hidden
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className={labelClass}>{t("expiry")}</label>
-                    <input required type="text" autoComplete="cc-exp" placeholder="MM / YY" className={inputClass} />
-                  </div>
-                  <div>
-                    <label className={labelClass}>{t("cvc")}</label>
-                    <input required type="text" autoComplete="cc-csc" placeholder="CVC" className={inputClass} />
-                  </div>
-                </div>
-                <div>
-                  <label className={labelClass}>{t("nameOnCard")}</label>
-                  <input required type="text" autoComplete="cc-name" placeholder="Jane Smith" className={inputClass} />
+                  <p className="text-sm font-bold text-ceramic">{t("codTitle")}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate">{t("codNotice")}</p>
                 </div>
               </div>
             </section>
 
             {/* Submit */}
             <div>
+              {error && (
+                <p role="alert" className="mb-3 rounded-xl bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">
+                  {error}
+                </p>
+              )}
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-mint)] py-4 text-sm font-bold text-white transition-colors hover:bg-[var(--color-mint-hover)] active:scale-[0.99]"
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-[var(--color-mint)] py-4 text-sm font-bold text-white transition-colors hover:bg-[var(--color-mint-hover)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <Lock className="h-4 w-4" strokeWidth={2.5} />
-                {t("placeOrder")} · {formatEGP(total, locale)}
+                <Banknote className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+                {submitting ? t("placing") : `${t("placeOrder")} · ${formatEGP(total, locale)}`}
               </button>
               <p className="mt-3 text-center text-[11px] text-slate">{t("secure")}</p>
             </div>

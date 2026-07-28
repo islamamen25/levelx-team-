@@ -33,10 +33,11 @@ Premium electronics & home appliances e-commerce — Egyptian market.
 | Database | Supabase (PostgreSQL + RLS) — ref: `xeylyyfmcucphggqwxdv` |
 | Client State | Zustand |
 | i18n | next-intl |
-| Payments | Paymob (HMAC webhook validation) |
-| Logistics | Bosta (async shipment trigger) |
-| Auth/OTP | WhatsApp Business API |
-| Infra | Cloudflare Workers via `@opennextjs/cloudflare` + Wrangler (Cairo edge node); Cloudflare WAF in front |
+| Checkout | **Cash on Delivery** — `create_cod_order()` RPC, see §12 |
+| Payments | Paymob — ⚠️ **PLANNED, NOT BUILT.** Zero lines of code exist. |
+| Logistics | Bosta — ⚠️ **PLANNED, NOT BUILT.** Zero lines of code exist. |
+| Auth/OTP | WhatsApp Business API — ⚠️ **PLANNED, NOT BUILT.** |
+| Infra | **Vercel** (project `levelx-team`, auto-deploys from `master`). The `@opennextjs/cloudflare` + Wrangler scripts in `package.json` are vestigial — Vercel ignores them. |
 
 ---
 
@@ -88,13 +89,20 @@ No test runner is configured.
 
 ## 8. Critical Integration Rules
 
-### Paymob (Payments)
+> ⚠️ Both integrations below are **not implemented**. These are the rules to follow
+> *when* they are built — they do not describe existing code. Checkout is currently
+> Cash on Delivery (§12).
+
+### Paymob (Payments) — not built yet
 - **NEVER** trust frontend SDK callbacks to fulfill orders.
 - MUST validate HMAC signature in backend webhook before changing order status.
-- Webhook route: `app/api/webhooks/paymob/route.ts`.
+- Webhook route (planned): `app/api/webhooks/paymob/route.ts`.
+- The `orders.payment_method` enum already reserves `'paymob'`, so adding it needs no
+  enum migration — set it instead of `'cod'` and gate `status` on the verified webhook.
 
-### Bosta (Logistics)
-- Trigger "Create Shipment" ONLY after the HMAC-verified payment webhook succeeds.
+### Bosta (Logistics) — not built yet
+- Trigger "Create Shipment" ONLY after the HMAC-verified payment webhook succeeds
+  (for COD orders, after the confirmation call instead).
 - Always async — never block the payment response.
 
 ---
@@ -180,3 +188,51 @@ The write contract, storefront visibility rules, and the mandatory
 touching `products` / `variants` / `product_translations`.
 
 The older n8n pipeline is retired; see the fallback note at the end of `COWORK.md`.
+
+> 🔴 **Catalog reality check (2026-07-28):** 61 products exist but only **1 is active
+> and sellable**. Of the 60 inactive ones, **59 have no `variants` row** (⇒ no price)
+> and 54 have no images. A product without a variant is invisible in every listing —
+> `COWORK.md §3`. Fixing this is the main blocker to going live, ahead of any feature work.
+
+---
+
+## 12. Checkout — Cash on Delivery
+
+Orders are real as of migration `0003_orders_cod.sql`. Before that, the checkout form
+collected card details and persisted **nothing** — it cleared the cart and showed a
+success screen.
+
+- **Tables:** `orders`, `order_items`. RLS: **no SELECT policy for `anon`** (customer PII
+  must never be enumerable); admins get ALL via `is_admin()`.
+- **The only write path is `create_cod_order()`** — a `SECURITY DEFINER` RPC. Do not
+  insert into `orders` directly from application code. It exists for two reasons:
+  1. **Atomicity** — order + items in one transaction; a failure mid-way rolls back
+     entirely rather than leaving an order with no items.
+  2. **Price integrity** — the client sends `variant_id` + `qty` only. Prices, VAT and
+     total are read from `variants` and computed server-side, so a tampered payload
+     cannot set its own price.
+- **VAT is 14%** (Egypt). It is defined twice on purpose — `VAT_RATE` in
+  `components/checkout/checkout-form.tsx` for display, and `v_vat_rate` inside the RPC
+  as the authoritative figure. **Change both together.**
+- **Order numbers** are `LX-YYMMDD-NNNN` from `order_number_seq` — human-quotable,
+  because customers read them back over the phone.
+- **No admin orders screen exists yet.** Orders can currently only be read via SQL or
+  the Supabase dashboard. Worth building before real volume arrives.
+
+### ⚠️ Known gap — the RPC is reachable without the app
+`create_cod_order()` is granted to `anon` (guests must be able to order), which means it
+is also callable directly at `/rest/v1/rpc/create_cod_order` with the public anon key.
+**The rate limit in `app/api/orders/route.ts` only protects the app path, not that one.**
+
+Consequence: someone could script spam orders straight against Supabase, bypassing the
+5-per-minute cap. It is *nuisance* rather than financial risk — COD takes no money, prices
+cannot be forged, and no customer data leaks (there is no SELECT policy) — but it would
+pollute the orders table.
+
+Two Supabase advisor WARNs (`anon_/authenticated_security_definer_function_executable`)
+point at exactly this and are **expected**, not regressions — same category as the
+long-standing `is_admin()` WARN.
+
+Proper fix when it matters: `revoke execute on function create_cod_order(...) from anon,
+authenticated;` and have the API route call it with a `SUPABASE_SERVICE_ROLE_KEY` instead.
+That needs the key added to Vercel env, so it was deliberately not done as a drive-by.
