@@ -3,7 +3,7 @@
 > تعليمات موجّهة للـagent اللي بيولّد بيانات المنتجات ويرفعها على Supabase مباشرة
 > (بدل بايبلاين n8n القديم اللي اتوقف).
 >
-> **آخر تحديث:** 2026-07-25 · **مشروع Supabase:** `xeylyyfmcucphggqwxdv`
+> **آخر تحديث:** 2026-07-27 · **مشروع Supabase:** `xeylyyfmcucphggqwxdv`
 
 ---
 
@@ -97,6 +97,29 @@ curl -X POST "$SITE_URL/api/revalidate" \
 
 **قيد مهم:** `UNIQUE (product_id, lang)` — استخدم upsert بـ`onConflict: "product_id,lang"`
 بدل insert، وإلا هتاخد خطأ عند إعادة الرفع.
+
+### `categories` — ⚠️ لو هتضيف قسم جديد أثناء رفع منتج
+
+`categories` مالهاش جدول ترجمة زي `product_translations` — عمود واحد بس اسمه
+`name_ar` (اتضاف 2026-07-27). لو الأقسام الـ17 الموجودة أصلاً هتكفي (شوف
+`lib/category-presentation.ts` أو استعلم `select slug, name_ar from categories`)،
+معندكش حاجة تعملها. لكن لو محتاج **قسم جديد مش موجود**، لازم تملى `name_ar`
+وقت الإدراج وإلا صفحة `/ar` هتعرض الاسم الإنجليزي (`name`) كـfallback:
+
+```sql
+insert into categories (name, name_ar, slug, parent_id)
+values ('Wireless Chargers', 'شواحن لاسلكية', 'wireless-chargers', null);
+```
+
+| العمود | النوع | ملاحظات |
+|---|---|---|
+| `name` | text | NOT NULL — إنجليزي، ونص احتياطي لو `name_ar` فاضي |
+| `name_ar` | text | nullable — لو فاضي/مسافات، الموقع بيرجع لـ`name` (نفس منطق "الفاضي" في قسم 4) |
+| `slug` | text | حروف صغيرة وأرقام وشرطات — `^[a-z0-9-]+$` |
+| `parent_id` | uuid | nullable → `categories.id`، للأقسام الفرعية |
+
+بعد أي إضافة/تعديل على `categories`، ابعت `POST /api/revalidate` بـ
+`{ "type": "category", "slug": "<slug>" }` أو `{}` زي أي رفع تاني.
 
 ---
 
