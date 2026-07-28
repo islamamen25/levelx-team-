@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import Image from "next/image";
+import { Tag, Laptop, Tablet, Smartphone, Gamepad2, type LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { getProductsFiltered } from "@/lib/queries/products";
 import { FeaturedCarousel } from "@/components/home/featured-carousel";
@@ -8,13 +9,16 @@ interface FeaturedProps {
   locale: string;
 }
 
-const FILTER_CHIPS: { label: string; arLabel: string; emoji: string; query: string }[] = [
-  { label: "Price drop",  arLabel: "تخفيضات",     emoji: "🏷️",  query: "" },
-  { label: "MacBook",     arLabel: "ماك بوك",     emoji: "💻",  query: "brand=Apple&category=laptops" },
-  { label: "iPad",        arLabel: "آيباد",        emoji: "⬛",  query: "brand=Apple&category=tablets" },
-  { label: "Android",     arLabel: "أندرويد",      emoji: "📱",  query: "brand=Samsung" },
-  { label: "iPhone",      arLabel: "آيفون",        emoji: "📱",  query: "brand=Apple&category=mobile" },
-  { label: "Gaming",      arLabel: "ألعاب",        emoji: "🎮",  query: "category=gaming" },
+// Lucide icons — matches the icon system already used for category tiles
+// (lib/category-presentation.ts) instead of emoji, which renders inconsistently
+// across operating systems and reads as an unfinished placeholder.
+const FILTER_CHIPS: { label: string; arLabel: string; icon: LucideIcon; query: string }[] = [
+  { label: "Price drop",  arLabel: "تخفيضات",     icon: Tag,        query: "" },
+  { label: "MacBook",     arLabel: "ماك بوك",     icon: Laptop,     query: "brand=Apple&category=laptops" },
+  { label: "iPad",        arLabel: "آيباد",        icon: Tablet,     query: "brand=Apple&category=tablets" },
+  { label: "Android",     arLabel: "أندرويد",      icon: Smartphone, query: "brand=Samsung" },
+  { label: "iPhone",      arLabel: "آيفون",        icon: Smartphone, query: "brand=Apple&category=mobile" },
+  { label: "Gaming",      arLabel: "ألعاب",        icon: Gamepad2,   query: "category=gaming" },
 ];
 
 export async function Featured({ locale }: FeaturedProps) {
@@ -67,25 +71,28 @@ export async function Featured({ locale }: FeaturedProps) {
             {/* Filter chips */}
             <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex gap-2" style={{ width: "max-content" }}>
-                {FILTER_CHIPS.map((chip, i) => (
-                  <Link
-                    key={chip.label}
-                    href={chip.query ? `/products?${chip.query}` : "/deals"}
-                    locale={locale as "en" | "ar"}
-                    className={[
-                      "flex flex-col items-center gap-1.5 rounded-xl border px-4 py-3 text-center transition-all duration-200 hover:border-[var(--color-mint)] hover:shadow-sm",
-                      i === 0
-                        ? "border-[var(--color-mint)] bg-[var(--color-mint-soft)]"
-                        : "border-[var(--color-iron)] bg-white",
-                    ].join(" ")}
-                    style={{ minWidth: "80px" }}
-                  >
-                    <span className="text-xl" aria-hidden>{chip.emoji}</span>
-                    <span className="whitespace-nowrap text-[11px] font-semibold text-ceramic">
-                      {isAr ? chip.arLabel : chip.label}
-                    </span>
-                  </Link>
-                ))}
+                {FILTER_CHIPS.map((chip, i) => {
+                  const Icon = chip.icon;
+                  return (
+                    <Link
+                      key={chip.label}
+                      href={chip.query ? `/products?${chip.query}` : "/deals"}
+                      locale={locale as "en" | "ar"}
+                      className={[
+                        "flex flex-col items-center gap-1.5 rounded-xl border px-4 py-3 text-center transition-all duration-200 hover:border-[var(--color-mint)] hover:shadow-sm",
+                        i === 0
+                          ? "border-[var(--color-mint)] bg-[var(--color-mint-soft)]"
+                          : "border-[var(--color-iron)] bg-white",
+                      ].join(" ")}
+                      style={{ minWidth: "80px" }}
+                    >
+                      <Icon className="h-5 w-5 text-ceramic" strokeWidth={1.75} aria-hidden />
+                      <span className="whitespace-nowrap text-[11px] font-semibold text-ceramic">
+                        {isAr ? chip.arLabel : chip.label}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 
