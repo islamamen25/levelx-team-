@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { Package, Paintbrush, FolderTree, ShoppingCart, ArrowRight } from "lucide-react";
+import { Package, Paintbrush, FolderTree, ShoppingCart, ArrowRight, FlaskConical } from "lucide-react";
 import { KpiCard } from "@/components/admin/kpi-card";
 import { DashboardCharts } from "@/components/admin/dashboard-charts";
 import { KPI_DATA } from "@/lib/mock-dashboard";
@@ -40,10 +40,33 @@ export default async function DashboardPage({ params }: Props) {
             >
               {t("title")}
             </h1>
-            <p className="mt-1 text-sm text-[var(--color-slate)]">
-              {locale === "ar" ? "آخر تحديث: ٧ أبريل ٢٠٢٦" : "Last updated: 7 April 2026"}
-            </p>
+            {/* A hardcoded "Last updated: 7 April 2026" used to sit here. It was
+                never wired to anything, so it aged into a false freshness claim.
+                Restore a real timestamp only when the data behind it is real. */}
           </div>
+        </div>
+
+        {/* Everything below is placeholder data from lib/mock-dashboard.ts. Said
+            plainly and up front: real orders now exist, so unlabelled invented
+            revenue sitting next to a working orders screen is actively
+            misleading. Remove this banner when the KPIs read real data. */}
+        <div className="mb-8 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+              <FlaskConical className="h-4 w-4 text-amber-700" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-amber-900">{t("demoTitle")}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-amber-800">{t("demoBody")}</p>
+            </div>
+          </div>
+          <Link
+            href={`/${locale}/dashboard/orders`}
+            className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-xl bg-amber-900 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-amber-800 sm:self-auto"
+          >
+            {t("demoCta")}
+            <ArrowRight className={`h-3.5 w-3.5 ${locale === "ar" ? "rotate-180" : ""}`} />
+          </Link>
         </div>
 
         {/* KPI Grid — stays eager: KpiCard is tiny, no heavy deps */}
@@ -54,7 +77,7 @@ export default async function DashboardPage({ params }: Props) {
         </div>
 
         {/* Charts + Period tabs — Client Component (ssr: false requires client) */}
-        <DashboardCharts locale={locale} periodLabels={periodLabels} />
+        <DashboardCharts locale={locale} periodLabels={periodLabels} demoBadge={t("demoBadge")} />
 
         {/* Quick Nav */}
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

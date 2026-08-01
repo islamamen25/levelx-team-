@@ -1,5 +1,18 @@
 /* ── Mock Dashboard Data ── */
 
+/**
+ * ⚠️ PLACEHOLDER DATA — not real store figures.
+ *
+ * Everything exported here is invented and static. It drives the KPI cards and
+ * all four charts on /dashboard, which are badged "Demo" in the UI because real
+ * orders now exist and unlabelled fake revenue next to a working orders screen
+ * is misleading.
+ *
+ * Real numbers live in the `orders` / `order_items` tables — see
+ * `lib/queries/orders.ts` and /dashboard/orders. When wiring these charts up,
+ * delete this file rather than leaving both paths alive.
+ */
+
 export interface KpiMetric {
   id: string;
   value: string;

@@ -36,16 +36,22 @@ const SalesChart   = dynamic(() => import("@/components/admin/sales-chart").then
 interface DashboardChartsProps {
   locale:       string;
   periodLabels: Record<Period, string>;
+  demoBadge:    string;
 }
 
-export function DashboardCharts({ locale, periodLabels }: DashboardChartsProps) {
+export function DashboardCharts({ locale, periodLabels, demoBadge }: DashboardChartsProps) {
   const [activePeriod, setActivePeriod] = useState<Period>("12m");
   const periods: Period[] = ["7d", "30d", "90d", "12m"];
 
   return (
     <>
-      {/* Period tabs */}
-      <div className="mb-8 flex justify-end">
+      {/* Period tabs. The period buttons are presentational for now — every chart
+          reads a fixed dataset from lib/mock-dashboard.ts regardless of the
+          selection, which is another reason the demo badge sits here. */}
+      <div className="mb-8 flex items-center justify-between gap-3">
+        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+          {demoBadge}
+        </span>
         <div className="flex gap-1 rounded-xl bg-[var(--color-obsidian)] p-1">
           {periods.map((period) => (
             <button

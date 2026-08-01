@@ -206,7 +206,11 @@
       "aov": "Average Order Value",
       "returns": "Return Rate by SKU",
       "sales": "Daily Sales"
-    }
+    },
+    "demoBadge": "Demo",
+    "demoTitle": "These figures are sample data — not your store",
+    "demoBody": "The cards and charts on this page use fixed placeholder data. For real numbers, open the Orders page.",
+    "demoCta": "Open Orders"
   },
   "chat": {
     "title": "LevelX Assistant",
