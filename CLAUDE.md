@@ -56,10 +56,74 @@ No test runner is configured.
 
 ## 4. Architecture
 - **Routing**: All user-facing routes live under `app/[locale]/`. The locale prefix is injected by `proxy.ts` (a `next-intl` `createMiddleware` wrapper) using `i18n/routing.ts`. Translations live in `messages/`. API routes under `app/api/{admin,chat,search}` are **not** locale-scoped.
-- **Data layer**: Supabase client in `lib/supabase.ts`; RLS enforced server-side. Schema migrations in `supabase/migrations/`.
+- **Data layer**: reads go through `lib/queries/*`; clients in `lib/supabase/server.ts`; RLS enforced server-side. Schema migrations in `supabase/migrations/` — ⚠️ these have **drifted** and can no longer rebuild the live schema; trust the live DB. See the map in §4b.
 - **Search / AI**: Meilisearch (`lib/meilisearch.ts`) + OpenAI embeddings (`lib/embeddings.ts`). AI SDK tools registered under `lib/tools/` (e.g. `search-products.ts`). Spend guarded by `lib/ai-budget.ts` and `lib/rate-limit.ts`.
 - **Client state**: Zustand cart store in `lib/cart-store.ts`.
 - **Path aliases** (`tsconfig.json` + `components.json`): `@/components`, `@/components/ui`, `@/lib`, `@/lib/utils`, `@/hooks`.
+
+---
+
+## 4b. Maps — read these instead of re-deriving them
+
+> Regenerate the route list with `find app -name "page.tsx" -o -name "route.ts"`.
+> The DB map changes only when a migration does.
+
+### Routes — storefront
+
+| Path | File |
+|---|---|
+| `/[locale]` | `app/[locale]/page.tsx` — sections come from a **`SECTION_REGISTRY`** and are ordered/toggled by `store_configuration.layout` in the DB |
+| `/[locale]/products` · `/products/[slug]` | PLP · PDP |
+| `/[locale]/category/[slug]` | category listing |
+| `/[locale]/checkout` | COD checkout |
+| `/[locale]/login` · `/reset-password` | auth |
+
+### Routes — admin (all under `(admin)`, guarded by `(admin)/layout.tsx`)
+
+| Path | Purpose |
+|---|---|
+| `/dashboard` | KPI cards + charts — **⚠️ still fed by `lib/mock-dashboard.ts`, not real orders** |
+| `/dashboard/orders` | order list, status changes, COD fulfilment |
+| `/dashboard/catalog` · `/catalog/new` · `/catalog/edit?id=` | products. Edit uses `?id=` not `/[id]` — a dynamic segment needs a prerender shell the cookie-based guard cannot produce under `cacheComponents` |
+| `/dashboard/categories` | categories + home-tile presentation |
+| `/dashboard/builder` | theme + home section order |
+
+### API
+
+`/api/orders` (public POST → `create_cod_order` RPC) · `/api/admin/{orders,products,products/search,categories,store-config}` (all `requireAdmin()`) · `/api/revalidate` (secret header) · `/api/chat` · `/api/search/semantic`
+
+### Modules
+
+| Import from | For |
+|---|---|
+| `lib/queries/{products,categories,orders}.ts` | **all** DB reads. Never query Supabase from a component. |
+| `lib/supabase/server.ts` | `createSupabaseServerClient()` (session/cookies) · `createSupabasePublicClient()` (anon, cacheable) |
+| `lib/supabase/require-admin.ts` | auth gate for every `api/admin/*` route |
+| `lib/supabase/types.ts` | generated `Database` type (752 lines — grep it, don't read it) |
+| `lib/supabase.ts` | browser singleton + `DbProduct`/`DbVariant`/`DbCategory` aliases. *Yes, this coexists with `lib/supabase/` — historical, not a mistake to fix casually.* |
+| `lib/format.ts` | `formatEGP`, `formatDateTime`. **Never re-declare these** — they were duplicated in 8 files and drifted. |
+| `lib/cart-store.ts` · `lib/store-config.ts` · `lib/category-presentation.ts` | cart (Zustand) · store config · category icon/colour registry |
+
+Components are grouped by surface: `home/` `plp/` `pdp/` `checkout/` `chat/` `admin/` `layout/` `ui/`(shadcn).
+
+### Database — 15 tables, RLS on all
+
+```
+categories ──parent_id──▶ categories        (self-referencing tree)
+products ──category_id──▶ categories
+variants ──product_id──▶ products           ← no variant = product INVISIBLE in listings
+product_translations ──product_id──▶ products   UNIQUE(product_id, lang), lang ∈ {ar,en}
+product_images ──product_id──▶ products
+product_category ──category_id──▶ categories    ⚠️ product_id has NO FK constraint
+orders ◀──order_id── order_items ──product_id──▶ products
+                                 └─variant_id──▶ variants
+serial_items ──variant_id──▶ variants
+profiles(id, role)  store_configuration  price_data  pending_approvals
+advisory_signals    agent_states
+```
+
+**Product visibility requires all four:** `is_active = true` · `slug IS NOT NULL` ·
+**≥1 `variants` row** · valid `category_id`. Missing variants is the usual culprit.
 
 ---
 

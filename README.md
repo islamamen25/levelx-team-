@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LevelX (tekdom)
 
-## Getting Started
+Premium electronics & home-appliances e-commerce for the Egyptian market. Bilingual
+storefront (ar/en) with an admin dashboard, AI-assisted search, and cash-on-delivery
+checkout.
 
-First, run the development server:
+**Live:** https://levelx-team.vercel.app
+
+> ⚠️ **Two codebases share this disk.** The parent folder `D:\level X` contains an older
+> Next.js 14 prototype that has **no `package.json` and cannot run**. All real work happens
+> in `tekdom/` — this directory. If a file path outside `tekdom/` looks relevant, it is
+> almost certainly the dormant prototype.
+
+## Stack
+
+Next.js **16.2** (App Router, PPR via `cacheComponents`) · React 19.2 · TypeScript ·
+Tailwind **v4** (no config file — `@theme` in `app/globals.css`) · shadcn/ui ·
+Supabase (Postgres + RLS) · next-intl · Zustand · Vercel AI SDK 6 + Meilisearch ·
+deployed on **Vercel** (auto-deploys from `master`).
+
+## Commands
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev     # local dev server
+npm run build   # production build — also the main correctness check
+npm run lint    # ESLint (baseline: 15 problems, all pre-existing)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+There is no test runner. Verification is `build` + `lint` + manual browser checks.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Which doc do I read?
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| I want to… | Read |
+|---|---|
+| Know the rules before writing code | [`CLAUDE.md`](CLAUDE.md) — conventions, Next 16.2 / Tailwind v4 constraints, **route + module + DB maps** |
+| Know what's built and what's broken right now | [`CONTEXT.md`](CONTEXT.md) — current state, decisions, known issues |
+| Write products/variants/translations to the DB | [`COWORK.md`](COWORK.md) — the write contract. **Read this before any DB write.** |
+| Add a product by hand (non-technical) | [`ADD-PRODUCT-STEPS.md`](ADD-PRODUCT-STEPS.md) |
+| Prepare product images | [`IMAGE-GUIDE.md`](IMAGE-GUIDE.md) — 1500×1500, <500 KB |
+| See past design audits | [`docs/archive/`](docs/archive/) |
 
-## Learn More
+## Two things that will bite you
 
-To learn more about Next.js, take a look at the following resources:
+1. **Direct DB writes do not invalidate the Next.js cache.** After writing product data you
+   must `POST /api/revalidate` or the storefront serves stale content for up to an hour.
+   See `COWORK.md`.
+2. **A product with no row in `variants` is invisible** in every listing and category page,
+   even though its own URL works. This is the most common "I uploaded it but can't find it".
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Supabase
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Project `xeylyyfmcucphggqwxdv` (eu-west-1). **Free tier — it auto-pauses after ~7 days
+idle**, which breaks `npm run build` with `fetch failed`. Restore it from the Supabase
+dashboard and wait for `ACTIVE_HEALTHY`.

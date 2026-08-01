@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { formatEGP, formatDateTime } from "@/lib/format";
 import type { OrderRow, OrderStatus } from "@/lib/queries/orders";
 
 const STATUSES: OrderStatus[] = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
@@ -26,22 +27,6 @@ const STATUS_LABELS: Record<OrderStatus, { ar: string; en: string }> = {
   delivered: { ar: "تم التسليم",   en: "Delivered" },
   cancelled: { ar: "ملغي",         en: "Cancelled" },
 };
-
-function formatEGP(n: number, locale: string) {
-  return new Intl.NumberFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-EG", {
-    style: "currency",
-    currency: "EGP",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
-
-function formatDate(iso: string, locale: string) {
-  // Latin digits in both locales, matching how prices are rendered store-wide.
-  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-GB", {
-    day: "2-digit", month: "short", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  }).format(new Date(iso));
-}
 
 interface OrderTableProps {
   initialOrders: OrderRow[];
@@ -216,7 +201,7 @@ export function OrderTable({ initialOrders, locale }: OrderTableProps) {
 
                   <TableCell>
                     <span className="whitespace-nowrap text-xs text-[var(--color-slate)]">
-                      {formatDate(o.created_at, locale)}
+                      {formatDateTime(o.created_at, locale)}
                     </span>
                   </TableCell>
 

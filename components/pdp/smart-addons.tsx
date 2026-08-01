@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { getProductsByCategoryId } from "@/lib/queries/products";
 import { Link } from "@/i18n/navigation";
+import { formatEGP } from "@/lib/format";
 import type { DbProduct, DbVariant } from "@/lib/supabase";
 
 interface SmartAddonsProps {
@@ -9,13 +10,6 @@ interface SmartAddonsProps {
   locale: string;
 }
 
-function formatEGP(n: number, locale: string) {
-  return new Intl.NumberFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-EG", {
-    style: "currency",
-    currency: "EGP",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
 
 function AddonCard({
   product,

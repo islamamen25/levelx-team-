@@ -2,15 +2,9 @@
 
 import { Link } from "@/i18n/navigation";
 import { Star } from "lucide-react";
+import { formatEGP } from "@/lib/format";
 import type { UIMessage } from "ai";
 
-function formatEGP(n: number, locale: string) {
-  return new Intl.NumberFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-EG", {
-    style: "currency",
-    currency: "EGP",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
 
 interface ProductResult {
   slug: string;

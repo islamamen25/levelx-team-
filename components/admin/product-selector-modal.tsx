@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { SearchProduct } from "@/app/api/admin/products/search/route";
 
+import { formatEGP } from "@/lib/format";
+
 interface ProductSelectorModalProps {
   open:            boolean;
   onClose:         () => void;
@@ -163,7 +165,10 @@ export function ProductSelectorModal({
                     {/* Price */}
                     <span className="text-sm font-bold text-[var(--color-ceramic)] shrink-0">
                       {product.price > 0
-                        ? new Intl.NumberFormat("ar-EG-u-nu-latn", { style: "currency", currency: "EGP", maximumFractionDigits: 0 }).format(product.price)
+                        // TODO: no locale prop reaches this modal (builder-client →
+                        // section-manager → here), so it falls back to Arabic.
+                        // Thread locale through that chain to make it bilingual.
+                        ? formatEGP(product.price)
                         : "—"}
                     </span>
 

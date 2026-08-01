@@ -3,22 +3,13 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Plus, Zap } from "lucide-react";
+import { formatEGP } from "@/lib/format";
 import type { DbProduct, DbVariant } from "@/lib/supabase";
 
 interface ProductCardProps {
   product: DbProduct;
   variants: DbVariant[];
   locale: string;
-}
-
-function formatEGP(n: number, locale: string) {
-  // ar-EG-u-nu-latn: أرقام لاتينية — التجارة المصرية تستخدمها فعلياً،
-  // وأسماء المنتجات تُعرض بأرقام لاتينية بالفعل فيمنع التضارب داخل البطاقة.
-  return new Intl.NumberFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-EG", {
-    style: "currency",
-    currency: "EGP",
-    maximumFractionDigits: 0,
-  }).format(n);
 }
 
 export function ProductCard({ product, variants, locale }: ProductCardProps) {

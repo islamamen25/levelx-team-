@@ -6,6 +6,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { Check, ShieldCheck, RotateCcw, Truck, Minus, Plus, ShoppingBag, CheckCircle2 } from "lucide-react";
 import type { DbProduct, DbVariant, ProductCondition } from "@/lib/supabase";
 import { useCartStore } from "@/lib/cart-store";
+import { formatEGP } from "@/lib/format";
 
 interface ProductPanelProps {
   product: DbProduct;
@@ -15,13 +16,6 @@ interface ProductPanelProps {
 
 const CONDITION_ORDER: ProductCondition[] = ["Premium", "Excellent", "Good", "Fair"];
 
-function formatEGP(n: number, locale: string) {
-  return new Intl.NumberFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-EG", {
-    style: "currency",
-    currency: "EGP",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
 
 export function ProductPanel({ product, variants, locale }: ProductPanelProps) {
   const t  = useTranslations("product");

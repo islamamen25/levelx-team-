@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { ShoppingCart, Clock, Banknote, PackageCheck } from "lucide-react";
 import { OrderTable } from "@/components/admin/order-table";
 import { getOrdersAdmin } from "@/lib/queries/orders";
+import { formatEGP } from "@/lib/format";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -31,11 +32,6 @@ export default async function OrdersPage({ params }: Props) {
     .filter((o) => o.status === "delivered")
     .reduce((s, o) => s + Number(o.total), 0);
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat(isAr ? "ar-EG-u-nu-latn" : "en-EG", {
-      style: "currency", currency: "EGP", maximumFractionDigits: 0,
-    }).format(n);
-
   const stats = [
     {
       label: isAr ? "إجمالي الطلبات" : "Total Orders",
@@ -57,7 +53,7 @@ export default async function OrdersPage({ params }: Props) {
     },
     {
       label: isAr ? "محصَّل (تم التسليم)" : "Collected (Delivered)",
-      value: fmt(collected),
+      value: formatEGP(collected, locale),
       icon:  Banknote,
       color: "bg-emerald-50 text-emerald-600",
     },

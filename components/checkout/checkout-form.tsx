@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Banknote, ShieldCheck, PackageCheck, CheckCircle2, ShoppingBag, Minus, Plus, Trash2 } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
+import { formatEGP } from "@/lib/format";
 
 interface CheckoutFormProps {
   locale: string;
@@ -18,13 +19,6 @@ interface CheckoutFormProps {
  */
 const VAT_RATE = 0.14;
 
-function formatEGP(n: number, locale: string) {
-  return new Intl.NumberFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-EG", {
-    style: "currency",
-    currency: "EGP",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
 
 const inputClass =
   "w-full rounded-xl border border-[var(--color-iron)] bg-white px-4 py-3 text-sm text-ceramic placeholder:text-slate focus:border-[var(--color-mint)] focus:outline-none focus:ring-2 focus:ring-[var(--color-mint)]/15 transition-colors";
