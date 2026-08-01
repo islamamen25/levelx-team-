@@ -97,15 +97,42 @@ export function rateLimitHeaders(result: RateLimitResult): Record<string, string
 }
 
 /**
- * Convenience: extract best available client identifier from a Request.
- * Priority: CF-Connecting-IP → X-Forwarded-For → X-Real-IP → "unknown"
+ * Extract the best available client identifier from a Request.
+ *
+ * ⚠️ Only trust headers the hosting platform sets ITSELF, overwriting whatever
+ * the client sent. This function used to read `cf-connecting-ip` first — a
+ * Cloudflare header, and this app deploys to **Vercel** (see CLAUDE.md §2; the
+ * Wrangler scripts are vestigial). Nothing in the request path set or stripped
+ * it, so any client could invent a fresh value per request and land in a new
+ * rate-limit bucket every time. Verified: 8/8 requests passed a 5/min limit
+ * from one IP by rotating that header. That defeated every limit in the app,
+ * including the one guarding paid OpenAI calls in /api/chat.
+ *
+ * In production ONLY `x-vercel-forwarded-for` is consulted — the one header
+ * Vercel's edge sets itself. The spoofable fallbacks are gated behind a dev
+ * check rather than merely ranked below it, so the guarantee is readable in
+ * this function instead of resting on an assumption about which headers the
+ * platform happens to overwrite.
+ *
+ * If the trusted header is missing in production we return a single shared
+ * bucket. That throttles unrelated callers together — deliberately failing
+ * CLOSED (stricter), never open.
  */
 export function getClientId(req: Request): string {
   const headers = req.headers;
-  return (
-    headers.get("cf-connecting-ip") ??
-    headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    headers.get("x-real-ip") ??
-    "unknown"
-  );
+
+  const trusted = headers.get("x-vercel-forwarded-for")?.split(",")[0].trim();
+  if (trusted) return trusted;
+
+  // Local dev only: Vercel's header is absent, so fall back to what the dev
+  // server sees. Never reached in production.
+  if (process.env.NODE_ENV !== "production") {
+    return (
+      headers.get("x-real-ip") ??
+      headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+      "dev-local"
+    );
+  }
+
+  return "unknown";
 }

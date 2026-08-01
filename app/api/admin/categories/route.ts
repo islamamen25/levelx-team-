@@ -2,10 +2,17 @@
 // POST   — إنشاء قسم جديد
 // PATCH  — تعديل قسم (name, slug, parent_id, is_visible)
 // DELETE — حذف قسم (CASCADE في الـ DB)
+//
+// كل الـ verbs محمية بـ requireAdmin() — زي باقي routes الـ admin.
+// قبل كده كان الملف ده الوحيد بدون أي حارس: نداء GET بدون تسجيل دخول كان
+// بيرجّع 200 بالبيانات، و DELETE كان بيرجّع {"ok":true} لأي حد. الكتابة كانت
+// بتُرفض من RLS في قاعدة البيانات فقط — يعني طبقة واحدة بتشيل شغل تلات طبقات،
+// وقسم مخفي (is_visible=false) كان هيتسرّب فوراً لو وُجد. الحذف CASCADE
+// ويوصل للمنتجات، فده مكان غلط للاعتماد على حاجز واحد.
 
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/supabase/require-admin";
 import { z } from "zod";
 
 // z.string().uuid() enforces strict RFC4122 (variant nibble must be 8/9/a/b).
@@ -35,7 +42,10 @@ const CategorySchema = z.object({
 const CACHE_PROFILE = "hours";
 
 export async function GET() {
-  const supabase = await createSupabaseServerClient();
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const { supabase } = auth;
+
   const { data, error } = await supabase
     .from("categories")
     .select("id, name, slug, parent_id, is_visible")
@@ -45,11 +55,14 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const { supabase } = auth;
+
   const body = await req.json().catch(() => null);
   const parsed = CategorySchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("categories")
     .insert(parsed.data)
@@ -62,6 +75,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const { supabase } = auth;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
@@ -69,7 +86,6 @@ export async function PATCH(req: NextRequest) {
   const parsed = CategorySchema.partial().safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("categories")
     .update(parsed.data)
@@ -84,10 +100,13 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
+  const { supabase } = auth;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  const supabase = await createSupabaseServerClient();
   const { error } = await supabase.from("categories").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
