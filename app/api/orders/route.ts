@@ -60,13 +60,22 @@ export async function POST(req: NextRequest) {
   });
 
   if (error) {
-    // The RPC raises for an unavailable/inactive variant — that is the customer's
-    // problem to fix (stale cart), not a server fault, so surface it as a 409.
-    const unavailable = error.message.includes("unavailable");
+    // The RPC raises for an inactive variant or one with too little stock. Both
+    // are the customer's problem to fix (stale cart), not a server fault, so
+    // they are 409s — a 500 here would log real traffic as a server error and
+    // show the customer a generic failure for something they can act on.
+    //
+    // Stock shortages reuse ITEM_UNAVAILABLE rather than getting their own code:
+    // the storefront's existing message already reads correctly for it. A
+    // distinct "only N left" message would be better, but needs its own
+    // next-intl keys in both locales.
+    const customerFixable =
+      error.message.includes("unavailable") ||
+      error.message.includes("Insufficient stock");
     console.error("[orders] create_cod_order failed:", error.message);
     return NextResponse.json(
-      { error: unavailable ? "ITEM_UNAVAILABLE" : "ORDER_FAILED" },
-      { status: unavailable ? 409 : 500 }
+      { error: customerFixable ? "ITEM_UNAVAILABLE" : "ORDER_FAILED" },
+      { status: customerFixable ? 409 : 500 }
     );
   }
 
