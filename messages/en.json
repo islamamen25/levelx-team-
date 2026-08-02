@@ -130,6 +130,7 @@
     "resultsCount": "{count} products",
     "filters": "Filters",
     "clearFilters": "Clear all",
+    "filterCategory": "Category",
     "filterCondition": "Condition",
     "filterBrand": "Brand",
     "filterPrice": "Price range",
@@ -183,6 +184,8 @@
     "placing": "Placing your order…",
     "errorGeneric": "Something went wrong placing your order. Please try again.",
     "errorUnavailable": "An item in your basket is no longer available. Please review it and try again.",
+    "errorRateLimited": "Too many attempts. Please wait a minute and try again — your order was not placed.",
+    "errorValidation": "Please check your details — some fields need fixing before we can place the order.",
     "trustNoPrepay": "No prepayment",
     "trustInspect": "Inspect before you pay",
     "trustReturns": "30-day returns"
@@ -236,6 +239,7 @@
     "faq": "FAQ",
     "warranty": "Warranty",
     "returns": "Returns",
-    "sitemap": "Sitemap"
+    "sitemap": "Sitemap",
+    "paymentCod": "Cash on Delivery"
   }
 }

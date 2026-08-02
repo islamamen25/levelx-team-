@@ -31,7 +31,7 @@ const ChatPanel = dynamic(
     ssr:     false,
     loading: () => (
       // Thin loading state shown during the ~100ms dynamic import
-      <div className="fixed bottom-4 end-4 z-50 flex h-[500px] w-[min(380px,calc(100vw-2rem))] flex-col items-center justify-center overflow-hidden rounded-2xl border border-[var(--color-iron)] bg-white shadow-[0_24px_60px_-20px_oklch(0_0_0/0.15)]">
+      <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] end-4 z-50 flex h-[min(500px,calc(100dvh-6rem))] w-[min(380px,calc(100vw-2rem))] flex-col items-center justify-center overflow-hidden rounded-2xl border border-[var(--color-iron)] bg-white shadow-[0_24px_60px_-20px_oklch(0_0_0/0.15)]">
         <div className="flex items-center gap-1">
           <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-mint)]" style={{ animationDelay: "0ms" }} />
           <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--color-mint)]" style={{ animationDelay: "150ms" }} />
@@ -64,7 +64,13 @@ export function ChatWidget() {
         <button
           type="button"
           onClick={handleFabClick}
-          className="fixed bottom-4 end-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-mint)] text-white shadow-[0_8px_24px_-6px_oklch(0.64_0.10_184/0.4)] transition-transform hover:scale-105 active:scale-95 md:h-14 md:w-14"
+          // Deliberately left in the bottom corner. At 390x844 the category-tile grid
+          // fills the viewport (first row spans y 642-815), so a fixed FAB overlaps it
+          // wherever it sits — raising it to bottom-20 was measured and made things
+          // worse, moving a 35px corner overlap into a 48px overlap across the middle
+          // of a tile. The corner covers the least meaningful part of the content.
+          // The safe-area inset keeps it clear of the iOS home indicator.
+          className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] end-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-mint)] text-white shadow-[0_8px_24px_-6px_oklch(0.64_0.10_184/0.4)] transition-transform hover:scale-105 active:scale-95 md:h-14 md:w-14"
           aria-label={t("title")}
         >
           <MessageCircle className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2} />

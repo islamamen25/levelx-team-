@@ -14,24 +14,24 @@ export function Footer({ locale }: FooterProps) {
 
   const year = new Date().getFullYear();
 
-  const shopLinks = [
-    { label: tn("products"), href: "/products" },
-    { label: tn("categories"), href: "/categories" },
-    { label: tn("deals"), href: "/deals" },
-  ];
-
-  const companyLinks = [
-    { label: t("about"), href: "/about" },
-    { label: t("careers"), href: "/careers" },
-    { label: t("blog"), href: "/blog" },
-  ];
-
-  const supportLinks = [
-    { label: t("faq"), href: "/faq" },
-    { label: t("warranty"), href: "/warranty" },
-    { label: t("returns"), href: "/returns" },
-    { label: t("contact"), href: "/contact" },
-  ];
+  /**
+   * Every link in this footer used to 404: /categories, /deals, /about, /careers,
+   * /blog, /faq, /warranty, /returns, /contact, /privacy and /terms had no route file.
+   * Only routes that actually exist are listed now.
+   *
+   * The remaining pages are content the business has to write (support terms, company
+   * details, legal copy) — they are intentionally absent rather than linked-and-broken
+   * or filled with invented text. Add the entry back here when the page ships.
+   */
+  const columns = [
+    {
+      title: t("shop"),
+      links: [
+        { label: tn("products"), href: "/products" },
+        { label: tn("categories"), href: "/categories" },
+      ],
+    },
+  ].filter((c) => c.links.length > 0);
 
   return (
     <footer className="mt-auto border-t border-[var(--color-iron)] bg-[#F5F5F7]">
@@ -66,65 +66,26 @@ export function Footer({ locale }: FooterProps) {
             </div>
           </div>
 
-          {/* Shop */}
-          <div>
-            <p className="mb-4 text-[11px] font-bold uppercase tracking-wider text-ceramic">
-              {t("shop")}
-            </p>
-            <ul className="space-y-3">
-              {shopLinks.map(({ label, href }) => (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    locale={locale as "en" | "ar"}
-                    className="text-sm text-slate transition-colors hover:text-[var(--color-mint)]"
-                  >
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <p className="mb-4 text-[11px] font-bold uppercase tracking-wider text-ceramic">
-              {t("company")}
-            </p>
-            <ul className="space-y-3">
-              {companyLinks.map(({ label, href }) => (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    locale={locale as "en" | "ar"}
-                    className="text-sm text-slate transition-colors hover:text-[var(--color-mint)]"
-                  >
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Support */}
-          <div>
-            <p className="mb-4 text-[11px] font-bold uppercase tracking-wider text-ceramic">
-              {t("support")}
-            </p>
-            <ul className="space-y-3">
-              {supportLinks.map(({ label, href }) => (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    locale={locale as "en" | "ar"}
-                    className="text-sm text-slate transition-colors hover:text-[var(--color-mint)]"
-                  >
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {columns.map(({ title, links }) => (
+            <div key={title}>
+              <p className="mb-4 text-[11px] font-bold uppercase tracking-wider text-ceramic">
+                {title}
+              </p>
+              <ul className="space-y-3">
+                {links.map(({ label, href }) => (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      locale={locale as "en" | "ar"}
+                      className="text-sm text-slate transition-colors hover:text-[var(--color-mint)]"
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
         {/* Bottom bar */}
@@ -133,30 +94,19 @@ export function Footer({ locale }: FooterProps) {
           <p className="text-xs text-slate">
             © {year} {tc("brand")}. {t("rights")}
           </p>
-          <div className="flex items-center gap-5">
-            <Link
-              href="/privacy"
-              locale={locale as "en" | "ar"}
-              className="text-xs text-slate transition-colors hover:text-[var(--color-mint)]"
-            >
-              {t("privacy")}
-            </Link>
-            <Link
-              href="/terms"
-              locale={locale as "en" | "ar"}
-              className="text-xs text-slate transition-colors hover:text-[var(--color-mint)]"
-            >
-              {t("terms")}
-            </Link>
+          {/* /privacy and /terms links removed with the rest — they 404'd too. They
+              are the most important ones to actually write. */}
           </div>
-          </div>
-          {/* Payment badges */}
+          {/* Payment methods.
+              This advertised Visa, Mastercard, PayPal, Klarna and Apple Pay while
+              checkout accepts none of them — the only payment method is Cash on
+              Delivery. Showing card logos on a COD-only store misleads customers at
+              exactly the moment they are deciding whether to trust it. Add entries
+              back when Paymob is actually integrated. */}
           <div className="mt-4 flex flex-wrap gap-2">
-            {["Visa", "Mastercard", "PayPal", "Klarna", "Apple Pay"].map((p) => (
-              <span key={p} className="rounded border border-[var(--color-iron)] px-2.5 py-1 text-[10px] font-bold text-slate">
-                {p}
-              </span>
-            ))}
+            <span className="rounded border border-[var(--color-iron)] px-2.5 py-1 text-[10px] font-bold text-slate">
+              {t("paymentCod")}
+            </span>
           </div>
         </div>
       </div>

@@ -133,22 +133,53 @@ export function ProductForm({ product, variants, translations, onClose, onSaved,
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Uploads used to be `if (!error) { ...push url }` with no else: a rejected upload was
+   * skipped in silence, the spinner stopped, and nothing appeared — indistinguishable
+   * from an upload that never started.
+   *
+   * This matters more than a generic "handle the error" note, because the browser
+   * client cannot currently succeed at all: `storage.objects` has RLS enabled with no
+   * policies, so the anon key is denied every write. Until a policy exists, the honest
+   * outcome is a clear message pointing at the working path (scripts/levelx-images.py),
+   * not a spinner that resolves to nothing.
+   */
   const uploadImages = useCallback(async (files: File[]) => {
     setUploading(true);
+    setError(null);
     const urls: string[] = [];
+    const failed: string[] = [];
+    let denied = false;
+
     for (const file of files) {
-      if (!file.type.startsWith("image/")) continue;
+      if (!file.type.startsWith("image/")) {
+        failed.push(`${file.name} (not an image)`);
+        continue;
+      }
       const ext = file.name.split(".").pop();
       const path = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage
         .from("product-images")
         .upload(path, file, { cacheControl: "3600", upsert: false });
-      if (!error) {
-        const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(path);
-        urls.push(publicUrl);
+
+      if (error) {
+        const msg = error.message ?? "";
+        if (/policy|denied|unauthor|forbidden|row-level/i.test(msg)) denied = true;
+        failed.push(`${file.name} (${msg || "upload failed"})`);
+        continue;
       }
+      const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(path);
+      urls.push(publicUrl);
     }
-    setForm((f) => ({ ...f, images: [...f.images, ...urls] }));
+
+    if (urls.length) setForm((f) => ({ ...f, images: [...f.images, ...urls] }));
+    if (failed.length) {
+      setError(
+        denied
+          ? "Image upload is blocked by storage permissions. Add the images with the image pipeline script instead, then reload this page."
+          : `Could not upload: ${failed.join(", ")}`,
+      );
+    }
     setUploading(false);
   }, []);
 
@@ -624,7 +655,7 @@ export function ProductForm({ product, variants, translations, onClose, onSaved,
       </div>
 
       {error && (
-        <div className="mx-6 mb-3 rounded-xl bg-red-50 border border-red-100 px-4 py-2.5 text-xs text-red-600">
+        <div role="alert" className="mx-6 mb-3 rounded-xl bg-red-50 border border-red-100 px-4 py-2.5 text-xs text-red-600">
           {error}
         </div>
       )}

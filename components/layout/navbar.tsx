@@ -16,11 +16,11 @@ interface NavbarProps {
   categories: CategoryNode[];
 }
 
+// Only routes that exist. This list previously held /deals and /about too, which meant
+// three of the four mobile menu entries were 404s — effectively no working mobile nav.
 const NAV_LINKS = [
   { key: "products" as const, href: "/products" },
   { key: "categories" as const, href: "/categories" },
-  { key: "deals" as const, href: "/deals" },
-  { key: "about" as const, href: "/about" },
 ] as const;
 
 export function Navbar({ locale, categories }: NavbarProps) {
@@ -87,28 +87,13 @@ export function Navbar({ locale, categories }: NavbarProps) {
               <Search className="h-[18px] w-[18px]" strokeWidth={2} />
             </button>
 
-            {/* Trade-in — desktop only */}
-            <Link
-              href="/trade-in"
-              locale={locale as "en" | "ar"}
-              className="hidden items-center gap-1.5 rounded-full border border-[var(--color-iron)] px-4 py-2 text-xs font-semibold text-ceramic transition-colors hover:border-[var(--color-mint)] hover:text-[var(--color-mint)] lg:inline-flex"
-            >
-              {t("tradeIn")}
-            </Link>
-
-            {/* Need help — desktop only */}
+            {/* The trade-in pill (/trade-in, 404) and the Account button (a <button>
+                with no onClick — there is no customer account system) were removed
+                rather than left as controls that do nothing. "Need help?" stays: the
+                chat widget is the thing that answers it. */}
             <span className="hidden whitespace-nowrap text-sm font-medium text-ceramic lg:block lg:ps-1">
               {t("help")}
             </span>
-
-            {/* Account */}
-            <button
-              type="button"
-              aria-label="Account"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-ceramic transition-colors hover:bg-[var(--color-graphite)]"
-            >
-              <User className="h-[18px] w-[18px]" strokeWidth={2} />
-            </button>
 
             {/* Cart */}
             <Link
@@ -170,7 +155,7 @@ export function Navbar({ locale, categories }: NavbarProps) {
             </SheetClose>
           </div>
 
-          <nav className="flex flex-col px-4 py-4">
+          <nav className="flex flex-col overflow-y-auto px-4 py-4">
             {NAV_LINKS.map(({ key, href }) => (
               <Link
                 key={key}
@@ -189,6 +174,30 @@ export function Navbar({ locale, categories }: NavbarProps) {
                 />
               </Link>
             ))}
+
+            {/* Categories, inline.
+                CategoryBar is `hidden md:block` and this sheet never rendered it, so a
+                phone user could not browse categories at all beyond the six home-page
+                tiles. The tree is already fetched for the desktop bar — reuse it. */}
+            {categories.length > 0 && (
+              <>
+                <p className="mt-4 px-3 pb-1 pt-3 text-[11px] font-bold uppercase tracking-wider text-slate">
+                  {t("categories")}
+                </p>
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={`/category/${cat.slug}` as never}
+                    locale={locale as "en" | "ar"}
+                    onClick={() => setMobileOpen(false)}
+                    dir="auto"
+                    className="rounded-xl px-3 py-3 text-sm font-medium text-ceramic hover:bg-[var(--color-graphite)] hover:text-[var(--color-mint)]"
+                  >
+                    {cat.name}
+                  </Link>
+                ))}
+              </>
+            )}
           </nav>
 
           <div className="mt-auto border-t border-[var(--color-iron)] px-6 py-5">

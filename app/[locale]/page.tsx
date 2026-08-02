@@ -1,4 +1,5 @@
 import React from "react";
+import { getTranslations } from "next-intl/server";
 import { HeroSlider }     from "@/components/home/hero-slider";
 import { CategoryTiles }  from "@/components/home/category-tiles";
 import { Featured }       from "@/components/home/featured";
@@ -28,6 +29,7 @@ const SECTION_REGISTRY: Record<
 export default async function HomePage({ params }: Props) {
   const { locale } = await params;
   const { layout } = await getStoreConfig();
+  const tc = await getTranslations({ locale, namespace: "common" });
 
   const sections = [...layout]
     .sort((a, b) => a.order - b.order)
@@ -37,6 +39,14 @@ export default async function HomePage({ params }: Props) {
 
   return (
     <>
+      {/* The page had no <h1> at all — headings started at <h2>, which breaks
+          screen-reader document outline and weakens the most important page for SEO.
+          It is visually hidden rather than rendered because the hero is a slider: each
+          slide owns an <h2>, and promoting one of three rotating headlines to <h1>
+          would be arbitrary and would change on reorder. */}
+      <h1 className="sr-only">
+        {tc("brand")} — {tc("tagline")}
+      </h1>
       {sections.map(({ id, Component }) => (
         <Component key={id} locale={locale} />
       ))}
