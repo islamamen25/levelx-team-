@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { ENABLED_PAYMENT_METHODS } from "@/lib/payment-methods";
 
 interface FooterProps {
   locale: string;
@@ -97,16 +98,19 @@ export function Footer({ locale }: FooterProps) {
           {/* /privacy and /terms links removed with the rest — they 404'd too. They
               are the most important ones to actually write. */}
           </div>
-          {/* Payment methods.
-              This advertised Visa, Mastercard, PayPal, Klarna and Apple Pay while
-              checkout accepts none of them — the only payment method is Cash on
-              Delivery. Showing card logos on a COD-only store misleads customers at
-              exactly the moment they are deciding whether to trust it. Add entries
-              back when Paymob is actually integrated. */}
+          {/* Payment methods — driven by lib/payment-methods.ts, never a literal list.
+              This previously advertised Visa, Mastercard, PayPal, Klarna and Apple Pay
+              on a Cash-on-Delivery-only store. Reading from the shared list means the
+              badges cannot drift from what checkout actually accepts again. */}
           <div className="mt-4 flex flex-wrap gap-2">
-            <span className="rounded border border-[var(--color-iron)] px-2.5 py-1 text-[10px] font-bold text-slate">
-              {t("paymentCod")}
-            </span>
+            {ENABLED_PAYMENT_METHODS.map(({ id, labelKey }) => (
+              <span
+                key={id}
+                className="rounded border border-[var(--color-iron)] px-2.5 py-1 text-[10px] font-bold text-slate"
+              >
+                {t(labelKey)}
+              </span>
+            ))}
           </div>
         </div>
       </div>

@@ -240,6 +240,7 @@
     "warranty": "Warranty",
     "returns": "Returns",
     "sitemap": "Sitemap",
-    "paymentCod": "Cash on Delivery"
+    "paymentCod": "Cash on Delivery",
+    "paymentCard": "Cards"
   }
 }
