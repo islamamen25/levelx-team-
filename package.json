@@ -5,11 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cloudflare": "npx @opennextjs/cloudflare build",
     "start": "next start",
-    "lint": "eslint",
-    "preview": "npx @opennextjs/cloudflare preview",
-    "deploy": "npx @opennextjs/cloudflare deploy"
+    "lint": "eslint"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.51",
@@ -38,7 +35,6 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@opennextjs/cloudflare": "^1.19.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -46,7 +42,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "wrangler": "^4.83.0"
+    "typescript": "^5"
   }
 }

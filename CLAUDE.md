@@ -37,7 +37,7 @@ Premium electronics & home appliances e-commerce — Egyptian market.
 | Payments | Paymob — ⚠️ **PLANNED, NOT BUILT.** Zero lines of code exist. |
 | Logistics | Bosta — ⚠️ **PLANNED, NOT BUILT.** Zero lines of code exist. |
 | Auth/OTP | WhatsApp Business API — ⚠️ **PLANNED, NOT BUILT.** |
-| Infra | **Vercel** (project `levelx-team`, auto-deploys from `master`). The `@opennextjs/cloudflare` + Wrangler scripts in `package.json` are vestigial — Vercel ignores them. |
+| Infra | **Vercel** (project `levelx-team`, auto-deploys from `master`). Sole deploy target — the Cloudflare tooling was removed 2026-08-02, see §3. |
 
 ---
 
@@ -45,9 +45,15 @@ Premium electronics & home appliances e-commerce — Egyptian market.
 - `npm run dev` — local dev server
 - `npm run build` — production Next build
 - `npm run lint` — ESLint (config: `eslint.config.mjs`)
-- `npm run build:cloudflare` — OpenNext Cloudflare build
-- `npm run preview` — local Cloudflare Worker preview
-- `npm run deploy` — deploy to Cloudflare via Wrangler
+> **Cloudflare is gone (2026-08-02).** `open-next.config.ts`, the
+> `.github/workflows/deploy.yml` "Deploy to Cloudflare Pages" workflow, the
+> `build:cloudflare`/`preview`/`deploy` scripts and the `@opennextjs/cloudflare` +
+> `wrangler` dev-dependencies were all removed, and the owner deleted the Cloudflare
+> project. It had never served traffic — production always came from Vercel — but the
+> workflow and the Cloudflare↔GitHub integration failed on **every** commit, which
+> trains you to ignore a red ✗. Deploying is now just: merge to `master`.
+> The `cf-connecting-ip` note in `lib/rate-limit.ts` stays — it documents a real
+> spoofing fix and explains why that header must not be trusted here.
 - `npx tsx scripts/seed-meilisearch.ts` — reseed Meilisearch index
 
 No test runner is configured.

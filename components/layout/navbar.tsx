@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { useScrolled } from "@/hooks/use-scrolled";
-import { Search, ShoppingBag, User, Menu, X, ChevronRight } from "lucide-react";
+import { Search, ShoppingBag, Menu, X, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { CategoryBar } from "@/components/layout/category-bar";
 import type { CategoryNode } from "@/lib/queries/categories";
