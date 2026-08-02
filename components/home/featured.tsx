@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Tag, Laptop, Tablet, Smartphone, Gamepad2, type LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { getProductsFiltered } from "@/lib/queries/products";
+import { getCategoryFlat } from "@/lib/queries/categories";
 import { FeaturedCarousel } from "@/components/home/featured-carousel";
 
 interface FeaturedProps {
@@ -12,18 +13,30 @@ interface FeaturedProps {
 // Lucide icons — matches the icon system already used for category tiles
 // (lib/category-presentation.ts) instead of emoji, which renders inconsistently
 // across operating systems and reads as an unfinished placeholder.
-const FILTER_CHIPS: { label: string; arLabel: string; icon: LucideIcon; query: string }[] = [
-  { label: "Price drop",  arLabel: "تخفيضات",     icon: Tag,        query: "" },
-  { label: "MacBook",     arLabel: "ماك بوك",     icon: Laptop,     query: "brand=Apple&category=laptops" },
-  { label: "iPad",        arLabel: "آيباد",        icon: Tablet,     query: "brand=Apple&category=tablets" },
-  { label: "Android",     arLabel: "أندرويد",      icon: Smartphone, query: "brand=Samsung" },
-  { label: "iPhone",      arLabel: "آيفون",        icon: Smartphone, query: "brand=Apple&category=mobile" },
-  { label: "Gaming",      arLabel: "ألعاب",        icon: Gamepad2,   query: "category=gaming" },
-];
+/**
+ * These chips were hardcoded to a taxonomy that does not exist in this store:
+ * `category=laptops|tablets|mobile|gaming` and `brand=Apple|Samsung`, while the real
+ * tree is `*-accessories` and the only brand on file is LevelX. Every chip returned
+ * "no products match" — and the first one pointed at /deals, which 404'd.
+ *
+ * They are built from real categories now, so a chip can only ever link somewhere that
+ * exists. The leading "all products" chip replaces the dead /deals link.
+ */
+const CHIP_ICONS: LucideIcon[] = [Laptop, Tablet, Smartphone, Gamepad2];
 
 export async function Featured({ locale }: FeaturedProps) {
   const t    = await getTranslations({ locale, namespace: "featured" });
   const isAr = locale === "ar";
+
+  const realCategories = await getCategoryFlat(locale);
+  const chips = [
+    { label: isAr ? "الكل" : "All", href: "/products", Icon: Tag },
+    ...realCategories.slice(0, 5).map((c, i) => ({
+      label: c.name,
+      href: `/products?category=${encodeURIComponent(c.slug)}`,
+      Icon: CHIP_ICONS[i % CHIP_ICONS.length],
+    })),
+  ];
 
   // Top deals: products that have a sale_price set
   const results = await getProductsFiltered({ pageSize: 8 });
@@ -71,12 +84,12 @@ export async function Featured({ locale }: FeaturedProps) {
             {/* Filter chips */}
             <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex gap-2" style={{ width: "max-content" }}>
-                {FILTER_CHIPS.map((chip, i) => {
-                  const Icon = chip.icon;
+                {chips.map((chip, i) => {
+                  const Icon = chip.Icon;
                   return (
                     <Link
-                      key={chip.label}
-                      href={chip.query ? `/products?${chip.query}` : "/deals"}
+                      key={chip.href}
+                      href={chip.href as never}
                       locale={locale as "en" | "ar"}
                       className={[
                         "flex flex-col items-center gap-1.5 rounded-xl border px-4 py-3 text-center transition-all duration-200 hover:border-[var(--color-mint)] hover:shadow-sm",
@@ -87,8 +100,8 @@ export async function Featured({ locale }: FeaturedProps) {
                       style={{ minWidth: "80px" }}
                     >
                       <Icon className="h-5 w-5 text-ceramic" strokeWidth={1.75} aria-hidden />
-                      <span className="whitespace-nowrap text-[11px] font-semibold text-ceramic">
-                        {isAr ? chip.arLabel : chip.label}
+                      <span dir="auto" className="whitespace-nowrap text-[11px] font-semibold text-ceramic">
+                        {chip.label}
                       </span>
                     </Link>
                   );

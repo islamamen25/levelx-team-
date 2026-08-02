@@ -119,6 +119,32 @@
     @apply bg-obsidian text-ceramic;
     overflow-x: hidden;
   }
+
+  /* Keyboard focus ring.
+     Before this, exactly one :focus-visible rule existed in the whole stylesheet, so
+     tabbing through the site gave almost no visible indication of position — filter
+     chips, carousel dots and card buttons all showed nothing.
+     :focus-visible (not :focus) keeps mouse clicks from drawing a ring, which is why
+     the ring can be this prominent without looking noisy. Nothing here sets
+     `outline: none`, so this applies cleanly everywhere. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-mint);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Respect users who ask for less motion — the site uses Lenis smooth-scroll,
+     GSAP reveals and `transition-all` widely. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────

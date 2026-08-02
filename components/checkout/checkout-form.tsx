@@ -19,6 +19,9 @@ interface CheckoutFormProps {
  */
 const VAT_RATE = 0.14;
 
+/** Mirrors the per-line ceiling enforced inside create_cod_order() (migration 0005). */
+const MAX_QTY = 99;
+
 
 const inputClass =
   "w-full rounded-xl border border-[var(--color-iron)] bg-white px-4 py-3 text-sm text-ceramic placeholder:text-slate focus:border-[var(--color-mint)] focus:outline-none focus:ring-2 focus:ring-[var(--color-mint)]/15 transition-colors";
@@ -68,7 +71,14 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setError(data?.error === "ITEM_UNAVAILABLE" ? t("errorUnavailable") : t("errorGeneric"));
+        // Every non-OK response used to collapse into errorGeneric. A rate-limited
+        // customer was told "something went wrong" and retried, extending their own
+        // lockout; a validation failure never said which field was wrong.
+        // 429 = rate limit, 422 = Zod rejection, 409 = stale cart (see api/orders).
+        if (res.status === 429)      setError(t("errorRateLimited"));
+        else if (res.status === 422) setError(t("errorValidation"));
+        else if (data?.error === "ITEM_UNAVAILABLE") setError(t("errorUnavailable"));
+        else setError(t("errorGeneric"));
         return;
       }
 
@@ -174,10 +184,14 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
                         <Minus className="h-3 w-3" strokeWidth={2.5} />
                       </button>
                       <span className="w-5 text-center text-xs font-semibold text-ceramic">{item.qty}</span>
+                      {/* create_cod_order() REJECTS qty > 99 (migration 0005) rather
+                          than clamping, so letting the stepper run past it just buys a
+                          generic failure after the whole form is filled in. */}
                       <button
                         type="button"
-                        onClick={() => updateQty(item.key, item.qty + 1)}
-                        className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-iron)] text-ceramic transition hover:border-ceramic"
+                        onClick={() => updateQty(item.key, Math.min(MAX_QTY, item.qty + 1))}
+                        disabled={item.qty >= MAX_QTY}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--color-iron)] text-ceramic transition hover:border-ceramic disabled:opacity-40"
                       >
                         <Plus className="h-3 w-3" strokeWidth={2.5} />
                       </button>

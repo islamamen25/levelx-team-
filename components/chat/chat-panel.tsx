@@ -56,7 +56,7 @@ export function ChatPanel({ isOpen, onClose }: ChatPanelProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-4 end-4 z-50 flex h-[500px] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-[var(--color-iron)] bg-white shadow-[0_24px_60px_-20px_oklch(0_0_0/0.15)]">
+    <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] end-4 z-50 flex h-[min(500px,calc(100dvh-6rem))] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-[var(--color-iron)] bg-white shadow-[0_24px_60px_-20px_oklch(0_0_0/0.15)]">
 
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[var(--color-iron)] bg-[var(--color-mint)] px-4 py-3">

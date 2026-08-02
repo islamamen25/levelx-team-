@@ -125,8 +125,9 @@ export async function getProductsByCategoryId(
 
 export async function getProductsFiltered(params: {
   categorySlug?: string;
-  brand?: string;
-  condition?: string;
+  /** Plural: the sidebar renders checkboxes, so several may be active at once. */
+  brands?: string[];
+  conditions?: string[];
   priceMin?: number;
   priceMax?: number;
   page?: number;
@@ -136,7 +137,7 @@ export async function getProductsFiltered(params: {
   cacheLife("hours");
   cacheTag("products");
 
-  const { categorySlug, brand, condition, priceMin, priceMax, page = 1, pageSize = 24 } = params;
+  const { categorySlug, brands, conditions, priceMin, priceMax, page = 1, pageSize = 24 } = params;
 
   const supabase = createSupabasePublicClient();
 
@@ -160,7 +161,7 @@ export async function getProductsFiltered(params: {
     .range((page - 1) * pageSize, page * pageSize - 1);
 
   if (categoryId) query = query.eq("category_id", categoryId);
-  if (brand) query = query.eq("brand", brand);
+  if (brands?.length) query = query.in("brand", brands);
 
   const { data: products, error } = await query;
   if (error) throw new Error(`getProductsFiltered: ${error.message}`);
@@ -173,7 +174,11 @@ export async function getProductsFiltered(params: {
     .in("product_id", productIds)
     .order("price", { ascending: true });
 
-  if (condition) variantQuery = variantQuery.eq("condition", condition as "Premium" | "Excellent" | "Good" | "Fair");
+  if (conditions?.length)
+    variantQuery = variantQuery.in(
+      "condition",
+      conditions as ("Premium" | "Excellent" | "Good" | "Fair")[],
+    );
   if (priceMin != null) variantQuery = variantQuery.gte("price", priceMin);
   if (priceMax != null) variantQuery = variantQuery.lte("price", priceMax);
 

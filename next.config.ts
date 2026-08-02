@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+// Relative, not "@/lib/images" — path aliases are not resolved when Next loads its config.
+import { REMOTE_IMAGE_PATTERNS } from "./lib/images";
 
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
@@ -72,11 +74,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // Shared with the UI via lib/images.ts so a host can never be allowed in one place
+  // and rejected in the other — that mismatch is what crashed the product page.
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/public/**" },
-      { protocol: "https", hostname: "images.unsplash.com" },
-    ],
+    remotePatterns: [...REMOTE_IMAGE_PATTERNS],
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

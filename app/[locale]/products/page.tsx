@@ -25,13 +25,23 @@ export default async function ProductsPage({ params, searchParams }: Props) {
   const t  = await getTranslations({ locale, namespace: "plp" });
 
   const categorySlug = str(sp.category);
-  const brand        = str(sp.brand)?.split(",").filter(Boolean)[0];
-  const condition    = str(sp.condition)?.split(",").filter(Boolean)[0];
+  // The sidebar writes comma lists (brand=Apple,Sony). Taking only [0] here meant the
+  // second checkbox rendered as ticked while the results silently ignored it.
+  const list = (v: string | string[] | undefined) =>
+    str(v)?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
+  const selectedBrands     = list(sp.brand);
+  const selectedConditions = list(sp.condition);
   const priceMin     = parseFloat(str(sp.priceMin) ?? "") || undefined;
   const priceMax     = parseFloat(str(sp.priceMax) ?? "") || undefined;
 
   const [results, allCategories, brands] = await Promise.all([
-    getProductsFiltered({ categorySlug, brand, condition, priceMin, priceMax }),
+    getProductsFiltered({
+      categorySlug,
+      brands: selectedBrands,
+      conditions: selectedConditions,
+      priceMin,
+      priceMax,
+    }),
     getCategoryFlat(locale),
     getBrandsForCategory(categorySlug),
   ]);

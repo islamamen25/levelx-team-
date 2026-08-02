@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Pencil, Trash2, ChevronUp, ChevronDown, Package, Loader2 } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, ChevronUp, ChevronDown, Package, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -64,6 +64,7 @@ export function ProductTable({ initialProducts, categories, locale }: ProductTab
   const [deleteId, setDeleteId]     = useState<string | null>(null);
   const [deleting, setDeleting]     = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const CATS = ["All", ...categories.map((c) => c.name)];
 
@@ -104,23 +105,62 @@ export function ProductTable({ initialProducts, categories, locale }: ProductTab
     return list;
   }, [initialProducts, search, categoryFilter, sortField, sortDir, categories]);
 
+  /**
+   * Both handlers used to be `if (res.ok) router.refresh()` with no else, so a 403, a
+   * 500 or a dropped connection produced no visible change at all — the row stayed put
+   * and the admin could not tell whether the action had worked. Always report failure.
+   */
+  const describeFailure = async (res: Response, fallback: string) => {
+    const body = await res.json().catch(() => null);
+    const detail = typeof body?.error === "string" ? body.error : null;
+    if (res.status === 401 || res.status === 403) {
+      return "Your admin session has expired. Sign in again and retry.";
+    }
+    return detail ? `${fallback} (${detail})` : `${fallback} (HTTP ${res.status})`;
+  };
+
   const handleDelete = async (id: string) => {
     setDeleting(true);
-    const res = await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" });
-    setDeleting(false);
-    setDeleteId(null);
-    if (res.ok) router.refresh();
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/admin/products?id=${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setActionError(await describeFailure(res, "Could not delete this product"));
+        return;
+      }
+      setDeleteId(null);
+      router.refresh();
+    } catch {
+      setActionError("Could not reach the server. Check your connection and retry.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleToggleActive = async (id: string, nextActive: boolean) => {
     setTogglingId(id);
-    const res = await fetch(`/api/admin/products?id=${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_active: nextActive }),
-    });
-    setTogglingId(null);
-    if (res.ok) router.refresh();
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/admin/products?id=${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: nextActive }),
+      });
+      if (!res.ok) {
+        setActionError(
+          await describeFailure(
+            res,
+            `Could not ${nextActive ? "activate" : "deactivate"} this product`,
+          ),
+        );
+        return;
+      }
+      router.refresh();
+    } catch {
+      setActionError("Could not reach the server. Check your connection and retry.");
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   // Add/edit live on their own pages so there is room for the full form.
@@ -162,6 +202,23 @@ export function ProductTable({ initialProducts, categories, locale }: ProductTab
           <Plus className="h-3.5 w-3.5 mr-1.5" /> Add Product
         </Button>
       </div>
+
+      {/* Failure banner — the only feedback path for delete/toggle errors. */}
+      {actionError && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
+        >
+          <p className="flex-1 text-sm font-medium text-red-700">{actionError}</p>
+          <button
+            onClick={() => setActionError(null)}
+            aria-label="Dismiss"
+            className="text-red-400 transition-colors hover:text-red-600"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="flex items-center gap-4 text-xs text-[var(--color-slate)]">
@@ -328,7 +385,13 @@ export function ProductTable({ initialProducts, categories, locale }: ProductTab
       {/* Add / Edit now navigate to their own full pages — see openAdd/openEdit */}
 
       {/* Delete Confirm Dialog */}
-      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      <Dialog
+        open={!!deleteId}
+        onOpenChange={() => {
+          setDeleteId(null);
+          setActionError(null);
+        }}
+      >
         <DialogContent className="max-w-sm rounded-2xl border-gray-100 p-6">
           <div className="space-y-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50">
@@ -340,6 +403,13 @@ export function ProductTable({ initialProducts, categories, locale }: ProductTab
                 This action cannot be undone. The product and all its variants will be permanently removed.
               </p>
             </div>
+            {/* Repeated inside the dialog: on failure the dialog stays open, so the
+                banner behind it would be hidden exactly when it matters. */}
+            {actionError && (
+              <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+                {actionError}
+              </p>
+            )}
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setDeleteId(null)}
                 className="flex-1 h-9 border-gray-100 text-sm">Cancel</Button>

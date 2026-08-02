@@ -36,8 +36,11 @@ const SLIDES: HeroSlide[] = [
     id: "s1",
     layout: "split",
     badgeVariant: "flash",
-    ctaPrimaryHref: "/deals",
-    ctaSecondaryHref: "/how-it-works",
+    // Was /deals + /how-it-works — neither route exists, so the hero's PRIMARY
+    // call to action, the most-clicked link on the site, was a 404. Points at the
+    // catalogue until a real deals page exists.
+    ctaPrimaryHref: "/products",
+    ctaSecondaryHref: "/categories",
     hasCtaSecondary: true,
     gradient: "linear-gradient(145deg,#0f2027 0%,#203a43 50%,#2c5364 100%)",
     image: "https://images.unsplash.com/photo-1571380401583-72ca84994796?w=900&q=80&fit=crop",

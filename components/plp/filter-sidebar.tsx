@@ -37,6 +37,9 @@ const PRICE_PRESETS = {
 
 export function FilterSidebar({ brands, categories, locale }: FilterSidebarProps) {
   const t = useTranslations("plp");
+  // The `condition` namespace already carried ar/en labels; the checkboxes were
+  // rendering the raw enum value ("Fair", "Good") instead of using them.
+  const tCond = useTranslations("condition");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -55,12 +58,24 @@ export function FilterSidebar({ brands, categories, locale }: FilterSidebarProps
     priceMin !== "" ||
     priceMax !== "";
 
-  function update(key: string, value: string) {
+  /**
+   * Applies every change in ONE navigation.
+   *
+   * This used to be a single-key `update()` and the price presets called it twice in a
+   * row. Both calls rebuilt the params from the same render-time `searchParams`, so the
+   * second overwrote the first: "1,000 - 5,000" produced `?priceMax=5000` with the
+   * minimum silently dropped, and "15,000+" (whose max is "") cleared price filtering
+   * altogether. It also meant the `active` check below could never match, so a selected
+   * preset never highlighted.
+   */
+  function updateParams(changes: Record<string, string>) {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
+    for (const [key, value] of Object.entries(changes)) {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
     }
     startTransition(() => {
       router.replace(
@@ -69,6 +84,8 @@ export function FilterSidebar({ brands, categories, locale }: FilterSidebarProps
       );
     });
   }
+
+  const update = (key: string, value: string) => updateParams({ [key]: value });
 
   function toggleList(key: string, active: string[], value: string) {
     const next = active.includes(value)
@@ -100,7 +117,7 @@ export function FilterSidebar({ brands, categories, locale }: FilterSidebarProps
       <Accordion multiple defaultValue={["category", "condition", "brand", "price"]}>
         {/* ── Category ── */}
         <AccordionItem value="category">
-          <AccordionTrigger>Category</AccordionTrigger>
+          <AccordionTrigger>{t("filterCategory")}</AccordionTrigger>
           <AccordionContent>
             <div className="flex flex-wrap gap-2">
               {categories.map((cat) => {
@@ -137,7 +154,7 @@ export function FilterSidebar({ brands, categories, locale }: FilterSidebarProps
                     onChange={() => toggleList("condition", activeConditions, c)}
                     className="h-4 w-4 rounded border-[var(--color-iron)] text-[var(--color-mint)] accent-[var(--color-mint)]"
                   />
-                  <span className="text-sm text-ceramic">{c}</span>
+                  <span className="text-sm text-ceramic">{tCond(c.toLowerCase())}</span>
                 </label>
               ))}
             </div>
@@ -175,10 +192,11 @@ export function FilterSidebar({ brands, categories, locale }: FilterSidebarProps
                 return (
                   <button
                     key={label}
-                    onClick={() => {
-                      update("priceMin", min);
-                      update("priceMax", max);
-                    }}
+                    onClick={() =>
+                      active
+                        ? updateParams({ priceMin: "", priceMax: "" }) // click again to clear
+                        : updateParams({ priceMin: min, priceMax: max })
+                    }
                     className={[
                       "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                       active

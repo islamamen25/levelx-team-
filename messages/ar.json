@@ -9,6 +9,7 @@
     "loading": "جاري التحميل",
     "viewAll": "عرض الكل",
     "addToCart": "أضف إلى السلة",
+    "added": "تمت الإضافة",
     "buyNow": "اشتر الآن",
     "outOfStock": "غير متوفر",
     "inStock": "متوفر",
@@ -129,6 +130,7 @@
     "resultsCount": "{count} منتج",
     "filters": "فلاتر",
     "clearFilters": "مسح الكل",
+    "filterCategory": "الفئة",
     "filterCondition": "الحالة",
     "filterBrand": "العلامة التجارية",
     "filterPrice": "نطاق السعر",
@@ -182,6 +184,8 @@
     "placing": "جاري إرسال الطلب...",
     "errorGeneric": "حصلت مشكلة أثناء إرسال الطلب. حاول تاني.",
     "errorUnavailable": "فيه منتج في سلتك مابقاش متاح. راجع السلة وحاول تاني.",
+    "errorRateLimited": "حاولت مرات كتير. استنى دقيقة وحاول تاني — طلبك مااتسجّلش.",
+    "errorValidation": "راجع بياناتك — فيه خانات محتاجة تظبيط قبل ما نسجّل الطلب.",
     "trustNoPrepay": "من غير دفع مقدم",
     "trustInspect": "عاين قبل ما تدفع",
     "trustReturns": "إرجاع خلال 30 يوم"
@@ -235,6 +239,8 @@
     "faq": "الأسئلة الشائعة",
     "warranty": "الضمان",
     "returns": "الإرجاع",
-    "sitemap": "خريطة الموقع"
+    "sitemap": "خريطة الموقع",
+    "paymentCod": "الدفع عند الاستلام",
+    "paymentCard": "بطاقات الدفع"
   }
 }
