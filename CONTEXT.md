@@ -147,18 +147,27 @@ inputs and discarded them, then told the customer "Order placed!". No `orders` t
   request to the page leaks **zero** order PII — checked against a seeded order with
   unique markers, all absent from the response.
 
-### O. n8n — product import pipeline is LIVE
-Instance moved to **`https://n8n.islamai.shop`** (old `n8n.srv1344298.hstgr.cloud` is gone).
+### O. n8n — product import pipeline is RETIRED AND STOPPED *(updated 2026-08-03)*
+Product data is now generated via **cowork** and written **straight to Supabase**.
+The write contract is [`COWORK.md`](COWORK.md). Do not use n8n for product data.
 
-| Workflow | ID | Nodes | Role |
+| Workflow | ID | Nodes | State |
 |---|---|---|---|
-| **TEKDOM 1 — Intake & Enrichment** | `UfpZ0BYZ05ua4S1A` | 41 | 🟢 active |
-| **TEKDOM 2 — DB Writer** | `Z4iopTC6qSTmtlSh` | 20 | 🟢 active |
+| TEKDOM 1 — Intake & Enrichment | `UfpZ0BYZ05ua4S1A` | 41 | 🔴 deactivated 2026-08-03 |
+| TEKDOM 2 — DB Writer | `Z4iopTC6qSTmtlSh` | 20 | 🔴 deactivated 2026-08-03 |
 | ~~TEKDOM monolith~~ | `Q1LKEh5okGIThDbh` | 54 | archived |
 
-Flow: Drive folder polled every minute → lock file by renaming `DONE_` → parse Excel → enrich (barcode + Google images) → **Telegram approval** → TEKDOM 2 writes to Supabase (bilingual AR/EN via `product_translations`). Rejected items get a second enrichment pass (barcode → Google → official site) and a second review.
+Instance is `https://n8n.islamai.shop` (old `n8n.srv1344298.hstgr.cloud` is gone).
 
-`n8n/amazon-data-entry.workflow.json` was **deleted** — it described a superseded single-workflow design and importing it would have created a duplicate. [`n8n/README.md`](n8n/README.md) now documents what actually runs, read from the n8n API.
+> **⚠️ The retirement decision (2026-07-25) did not stop the trigger.** TEKDOM 1 kept
+> polling Drive every 60s for another 9 days — ~13,000 executions against an empty
+> folder — until both were set `active: false` on 2026-08-03 and verified via the API
+> (last execution `277022`, silence after). *"We stopped using it" is not evidence that
+> it stopped running.*
+
+How it worked, and the full node-level docs, are archived at
+[`docs/archive/n8n/`](docs/archive/n8n/) in case the pipeline is ever revived — it is
+the only surviving record of the two workflows.
 
 ---
 
