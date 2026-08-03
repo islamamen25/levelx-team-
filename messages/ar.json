@@ -242,7 +242,6 @@
     "returns": "الإرجاع",
     "sitemap": "خريطة الموقع",
     "paymentCod": "الدفع عند الاستلام",
-    "paymentCard": "بطاقات الدفع",
-    "adminLogin": "دخول الإدارة"
+    "paymentCard": "بطاقات الدفع"
   }
 }
