@@ -6,10 +6,10 @@ checkout.
 
 **Live:** https://levelx-team.vercel.app
 
-> ⚠️ **Two codebases share this disk.** The parent folder `D:\level X` contains an older
-> Next.js 14 prototype that has **no `package.json` and cannot run**. All real work happens
-> in `tekdom/` — this directory. If a file path outside `tekdom/` looks relevant, it is
-> almost certainly the dormant prototype.
+> ⚠️ **Two codebases share this disk.** An older Next.js 14 prototype with **no
+> `package.json`** that cannot run was moved to `D:\level X\_archive\` on 2026-08-03.
+> All real work happens in `tekdom/` — this directory. If a file path outside `tekdom/`
+> looks relevant, it is almost certainly the dormant prototype.
 
 ## Stack
 
@@ -37,7 +37,7 @@ There is no test runner. Verification is `build` + `lint` + manual browser check
 | Write products/variants/translations to the DB | [`COWORK.md`](COWORK.md) — the write contract. **Read this before any DB write.** |
 | Add a product by hand (non-technical) | [`ADD-PRODUCT-STEPS.md`](ADD-PRODUCT-STEPS.md) |
 | Prepare product images | [`IMAGE-GUIDE.md`](IMAGE-GUIDE.md) — 1500×1500, <500 KB |
-| See past design audits | [`docs/archive/`](docs/archive/) |
+| See past design audits, or the retired n8n pipeline | [`docs/archive/`](docs/archive/) |
 
 ## Two things that will bite you
 
