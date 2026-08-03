@@ -37,6 +37,8 @@ There is no test runner. Verification is `build` + `lint` + manual browser check
 | Write products/variants/translations to the DB | [`COWORK.md`](COWORK.md) — the write contract. **Read this before any DB write.** |
 | Add a product by hand (non-technical) | [`ADD-PRODUCT-STEPS.md`](ADD-PRODUCT-STEPS.md) |
 | Prepare product images | [`IMAGE-GUIDE.md`](IMAGE-GUIDE.md) — 1500×1500, <500 KB |
+| Run the admin dashboard (first time) | `LevelX-Admin-Guide-Simple.docx` — beginner walkthrough |
+| Run the admin dashboard (reference) | `LevelX-Admin-Guide.docx` — full field-by-field guide |
 | See past design audits, or the retired n8n pipeline | [`docs/archive/`](docs/archive/) |
 
 ## Two things that will bite you
