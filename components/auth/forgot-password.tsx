@@ -4,6 +4,12 @@ import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 
+// Deliberately NOT the shared `supabase` singleton from lib/supabase.ts.
+// That one uses default auth options; this form needs persistSession: false,
+// because asking for a reset link must never write a session to storage — the
+// user is unauthenticated and stays that way until they follow the email link.
+// Leave it separate. See reset-password-form.tsx, which *does* want the shared
+// client precisely because it needs the opposite behaviour.
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -16,13 +16,7 @@
  *   MAX_RPM = 20 requests / IP / min
  */
 
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/types";
-
-const _supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createSupabasePublicClient } from "@/lib/supabase/server";
 
 // ── Configuration ─────────────────────────────────────────────────────────────
 const SOFT_CAP_TOKENS  =  50_000;
@@ -187,7 +181,9 @@ export async function getAiFallbackResponse(userMessage: string): Promise<Fallba
     const q = userMessage.toLowerCase();
     const keywords = q.split(/\s+/).filter((w) => w.length > 2);
 
-    let query = _supabase
+    // Created per call rather than at module scope: this runs only when the
+    // circuit is OPEN, so there is no reason to hold a client open otherwise.
+    let query = createSupabasePublicClient()
       .from("products")
       .select("id, name, brand, slug, variants(price, sale_price, condition)")
       .eq("is_active", true)

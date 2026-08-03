@@ -1,17 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/types";
-
-// Default options (persistSession + detectSessionInUrl) so this client
-// picks up the recovery token Supabase Auth put in the URL after the
-// user clicked the "reset password" email link, and turns it into a
-// temporary session we can then call updateUser() against.
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+// The shared browser singleton, which is created with default auth options
+// (persistSession + detectSessionInUrl). That is exactly what this form needs:
+// the client must pick up the recovery token Supabase Auth put in the URL after
+// the user clicked the "reset password" email link, and turn it into a temporary
+// session we can then call updateUser() against.
+import { supabase } from "@/lib/supabase";
 
 interface Props {
   locale: string;
