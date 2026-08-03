@@ -47,8 +47,9 @@ Premium electronics & home appliances e-commerce — Egyptian market.
 - `npm run lint` — ESLint (config: `eslint.config.mjs`)
 > **Cloudflare is gone (2026-08-02).** `open-next.config.ts`, the
 > `.github/workflows/deploy.yml` "Deploy to Cloudflare Pages" workflow, the
-> `build:cloudflare`/`preview`/`deploy` scripts and the `@opennextjs/cloudflare` +
-> `wrangler` dev-dependencies were all removed, and the owner deleted the Cloudflare
+> `build:cloudflare`/`preview`/`deploy` scripts, the `@opennextjs/cloudflare` +
+> `wrangler` dev-dependencies and `wrangler.toml` (that last one missed until
+> 2026-08-03) were all removed, and the owner deleted the Cloudflare
 > project. It had never served traffic — production always came from Vercel — but the
 > workflow and the Cloudflare↔GitHub integration failed on **every** commit, which
 > trains you to ignore a red ✗. Deploying is now just: merge to `master`.

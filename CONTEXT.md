@@ -209,7 +209,7 @@ The site uses **Lenis smooth-scroll**, which confuses automated browsers: screen
 - Next.js **16.2.2** (App Router, Turbopack, PPR via `cacheComponents: true`) · React **19.2**
 - Tailwind **v4** (no config file; `@theme` in `app/globals.css`; P3 oklch)
 - next-intl (`en`/`ar`) · Supabase (`supabase-js` + `@supabase/ssr`) · Zustand cart · Vercel AI SDK 6 + Meilisearch
-- Deployed on **Vercel**; `@opennextjs/cloudflare` scripts still exist in `package.json` but Vercel ignores them
+- Deployed on **Vercel** — sole target. All Cloudflare tooling was removed 2026-08-02 (`6e3480c`); see `CLAUDE.md` §3.
 
 ### DB Tables (13, all RLS-enabled)
 `categories`, `products`, `variants`, `product_category`, `product_images`, `product_translations`, `profiles`, `store_configuration`, `serial_items`, `price_data`, `pending_approvals`, `advisory_signals`, `agent_states`
