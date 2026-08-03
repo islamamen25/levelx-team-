@@ -41,5 +41,9 @@ dev-server.log
 *.tsbuildinfo
 next-env.d.ts
 
+# supabase — CLI-generated local state, not source.
+# `pooler-url` embeds the DB host + user + project ref; this is a public repo.
+supabase/.temp/
+
 .vercel
 .env*
