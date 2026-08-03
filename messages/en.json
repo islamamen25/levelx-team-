@@ -241,6 +241,7 @@
     "returns": "Returns",
     "sitemap": "Sitemap",
     "paymentCod": "Cash on Delivery",
-    "paymentCard": "Cards"
+    "paymentCard": "Cards",
+    "adminLogin": "Admin login"
   }
 }

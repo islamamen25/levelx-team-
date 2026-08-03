@@ -97,6 +97,20 @@ export function Footer({ locale }: FooterProps) {
           </p>
           {/* /privacy and /terms links removed with the rest — they 404'd too. They
               are the most important ones to actually write. */}
+          {/* The admin dashboard had no entry point anywhere in the storefront: the
+              Account button was removed (there is no customer account system) and
+              nothing else linked /login, so the owner had to type the URL. Kept
+              deliberately plain and low-contrast — it is a staff door, not a
+              customer-facing feature. It is not a security boundary either; the
+              route is guarded by the session + is_admin() check in
+              (admin)/layout.tsx, so exposing the link costs nothing. */}
+          <Link
+            href="/login"
+            locale={locale as "en" | "ar"}
+            className="text-xs text-slate underline-offset-2 transition-colors hover:text-[var(--color-mint)] hover:underline"
+          >
+            {t("adminLogin")}
+          </Link>
           </div>
           {/* Payment methods — driven by lib/payment-methods.ts, never a literal list.
               This previously advertised Visa, Mastercard, PayPal, Klarna and Apple Pay

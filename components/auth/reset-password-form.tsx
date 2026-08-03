@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
+import { PasswordInput } from "@/components/auth/password-input";
 
 // Default options (persistSession + detectSessionInUrl) so this client
 // picks up the recovery token Supabase Auth put in the URL after the
@@ -74,28 +75,28 @@ export function ResetPasswordForm({ locale }: Props) {
         <label htmlFor="password" className="mb-1 block text-sm font-semibold text-[var(--color-ceramic)]">
           {locale === "ar" ? "كلمة المرور الجديدة" : "New password"}
         </label>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
+          locale={locale}
           required
           minLength={6}
+          autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-xl border border-[var(--color-iron)] px-4 py-2.5 text-sm text-[var(--color-ceramic)] focus:border-[var(--color-mint)] focus:outline-none"
         />
       </div>
       <div>
         <label htmlFor="confirm" className="mb-1 block text-sm font-semibold text-[var(--color-ceramic)]">
           {locale === "ar" ? "تأكيد كلمة المرور" : "Confirm password"}
         </label>
-        <input
+        <PasswordInput
           id="confirm"
-          type="password"
+          locale={locale}
           required
           minLength={6}
+          autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className="w-full rounded-xl border border-[var(--color-iron)] px-4 py-2.5 text-sm text-[var(--color-ceramic)] focus:border-[var(--color-mint)] focus:outline-none"
         />
       </div>
       <button

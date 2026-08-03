@@ -1,5 +1,6 @@
 import { login } from "./actions";
 import { ForgotPassword } from "@/components/auth/forgot-password";
+import { PasswordInput } from "@/components/auth/password-input";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -60,12 +61,12 @@ export default async function LoginPage({ params, searchParams }: Props) {
             >
               {locale === "ar" ? "كلمة المرور" : "Password"}
             </label>
-            <input
+            <PasswordInput
               id="password"
               name="password"
-              type="password"
+              locale={locale}
               required
-              className="w-full rounded-xl border border-[var(--color-iron)] px-4 py-2.5 text-sm text-[var(--color-ceramic)] focus:border-[var(--color-mint)] focus:outline-none"
+              autoComplete="current-password"
             />
           </div>
           <button
