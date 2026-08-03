@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { useScrolled } from "@/hooks/use-scrolled";
-import { Search, ShoppingBag, Menu, X, ChevronRight } from "lucide-react";
+import { Search, ShoppingBag, Menu, X, ChevronRight, User } from "lucide-react";
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { CategoryBar } from "@/components/layout/category-bar";
 import type { CategoryNode } from "@/lib/queries/categories";
@@ -108,6 +108,26 @@ export function Navbar({ locale, categories }: NavbarProps) {
                   {cartCount}
                 </span>
               )}
+            </Link>
+
+            {/* Sign in — sits next to the locale pill so it is reachable from every
+                page. Styled exactly like the cart control (h-9 w-9 round) so the
+                action row reads as one set rather than a pill plus a stray icon.
+
+                Note for whoever wires customer accounts later: there is no signup
+                route, so today this only lets an existing Supabase user in — in
+                practice, staff. A customer who somehow signs in and is not an admin
+                is redirected to the home page by (admin)/layout.tsx; they are logged
+                in but nothing in the UI says so. That is a gap to close when accounts
+                become a real feature, not a reason to hide the entry point. */}
+            <Link
+              href="/login"
+              locale={locale as "en" | "ar"}
+              aria-label={t("signIn")}
+              title={t("signIn")}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-ceramic transition-colors hover:bg-[var(--color-graphite)]"
+            >
+              <User className="h-[18px] w-[18px]" strokeWidth={2} />
             </Link>
 
             {/* Locale pill — ALWAYS visible */}
