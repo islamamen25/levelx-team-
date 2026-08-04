@@ -37,9 +37,18 @@ function revalidateProducts(...slugs: (string | null | undefined)[]) {
 
 const ConditionSchema = z.enum(["Premium", "Excellent", "Good", "Fair"]);
 
+// Messages are written to read after a field label, because describeSaveError in
+// components/admin/product-form.tsx renders them as "<Field> <message>". Setting
+// them explicitly also stops the UI text from depending on Zod's default wording.
 const VariantSchema = z.object({
-  sku_code: z.string().min(1).max(100),
-  price: z.number().nonnegative(),
+  sku_code: z.string().min(1, "is required").max(100, "is longer than 100 characters"),
+  // `.positive()`, not `.nonnegative()`. A blank price box used to arrive here as
+  // 0 (`parseFloat("") || 0`), pass validation, and put the product on sale for
+  // 0 EGP with no error shown anywhere — the only silent way to lose money on
+  // this form. The form now sends null for a blank or unparseable box, and 0 is
+  // rejected outright. Checked against live data first: the lowest existing
+  // price is 1300, so no current product becomes uneditable.
+  price: z.number({ error: "is required" }).positive("must be greater than zero"),
   sale_price: z.number().nonnegative().nullable().optional(),
   discount_badge: z.string().max(50).nullable().optional(),
   stock_quantity: z.number().int().nonnegative().default(0),
@@ -71,7 +80,7 @@ const TranslationSchema = z.object({
 });
 
 const CreateProductSchema = z.object({
-  name: z.string().min(1).max(255),
+  name: z.string().min(1, "is required").max(255, "is longer than 255 characters"),
   description: z.string().max(5000).nullable().optional(),
   slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/, "slug must be lowercase, numbers, hyphens only").optional(),
   brand: z.string().max(100).nullable().optional(),
