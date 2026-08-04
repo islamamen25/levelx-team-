@@ -157,6 +157,65 @@ function initForm(product?: DbProduct, variants?: DbVariant[], translations?: Db
   };
 }
 
+// On-screen names for the fields the API can reject, so an error points at a
+// box the admin can actually see rather than at a JSON key.
+const FIELD_LABELS: Record<string, string> = {
+  name: "Product name",
+  slug: "URL slug",
+  brand: "Brand",
+  description: "Description",
+  category_id: "Category",
+  images: "Images",
+  specs: "Specifications",
+  variants: "Variants",
+  translations: "Translations",
+  sku_code: "SKU",
+  price: "Price",
+  sale_price: "Sale price",
+  discount_badge: "Discount badge",
+  stock_quantity: "Stock quantity",
+  condition: "Condition",
+  title: "Title",
+  lang: "Language",
+};
+
+/**
+ * A failed save used to render as the two words "Validation failed" on a form
+ * with around twenty inputs, which is unusable — the commonest case by far is a
+ * brand-new product saved with the SKU still empty, because defaultVariant()
+ * starts it blank. The route now returns the full Zod issue path, so say which
+ * box is wrong and, for variants, which row.
+ */
+function describeSaveError(
+  status: number,
+  err: { error?: string; details?: { fields?: { path: string; message: string }[] } } | null,
+): string {
+  if (status === 401 || status === 403) {
+    return "Your session expired, or this account is not an admin. Sign in again and retry.";
+  }
+
+  const fields = err?.details?.fields;
+  if (!fields?.length) return err?.error ?? `Save failed (HTTP ${status}).`;
+
+  const lines = fields.map(({ path, message }) => {
+    const parts = path.split(".");
+    const label = FIELD_LABELS[parts[parts.length - 1]] ?? path;
+    // Zod's "String must contain at least 1 character(s)" is how an empty
+    // required box reads. Say that instead.
+    const reason = /at least 1 character/i.test(message) ? "is required" : message;
+
+    if (parts[0] === "variants" && parts.length === 3) {
+      return `Variant ${Number(parts[1]) + 1} — ${label} ${reason}`;
+    }
+    if (parts[0] === "translations" && parts.length === 3) {
+      return `${parts[1] === "0" ? "English" : "Arabic"} — ${label} ${reason}`;
+    }
+    return `${label} ${reason}`;
+  });
+
+  return lines.join(" · ");
+}
+
 interface ProductFormProps {
   product?: DbProduct;
   variants?: DbVariant[];
@@ -369,8 +428,8 @@ export function ProductForm({ product, variants, translations, onClose, onSaved,
     setSaving(false);
 
     if (!res.ok) {
-      const err = await res.json();
-      setError(err.error ?? "Save failed");
+      const err = await res.json().catch(() => null);
+      setError(describeSaveError(res.status, err));
       return;
     }
 
