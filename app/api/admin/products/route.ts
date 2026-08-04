@@ -112,6 +112,28 @@ function apiError(message: string, status = 400, details?: unknown) {
   return NextResponse.json({ error: message, details }, { status });
 }
 
+/**
+ * Field-level detail for a 422, keyed by the FULL issue path.
+ *
+ * `error.flatten()` groups issues by `path[0]` only, so a blank SKU inside
+ * variants[0] arrives as `{ variants: ["String must contain at least 1
+ * character(s)"] }` — the sub-field is gone. Combined with the form showing
+ * only `err.error`, an admin who left the SKU empty saw the words "Validation
+ * failed" and nothing else, on a form with roughly twenty inputs. That is the
+ * single most likely thing to happen to a first-time user, because
+ * defaultVariant() starts with an empty sku_code.
+ *
+ * Keeping the path means the message can name the actual box to go and fill.
+ */
+function validationDetails(error: z.ZodError) {
+  return {
+    fields: error.issues.map((i) => ({
+      path: i.path.join(".") || "(body)",
+      message: i.message,
+    })),
+  };
+}
+
 // ── GET /api/admin/products ───────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const rl = rateLimit(`products:read:${getClientId(req)}`, RL_READ);
@@ -183,7 +205,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = CreateProductSchema.safeParse(body);
   if (!parsed.success) {
-    return apiError("Validation failed", 422, parsed.error.flatten());
+    return apiError("Validation failed", 422, validationDetails(parsed.error));
   }
 
   const { variants, translations, ...productData } = parsed.data;
@@ -252,7 +274,7 @@ export async function PATCH(req: NextRequest) {
 
   const parsed = UpdateProductSchema.safeParse(body);
   if (!parsed.success) {
-    return apiError("Validation failed", 422, parsed.error.flatten());
+    return apiError("Validation failed", 422, validationDetails(parsed.error));
   }
 
   const { variants, translations, ...productData } = parsed.data;
