@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/lib/supabase";
 import type { DbProduct, DbVariant, DbTranslation, ProductCondition } from "@/lib/supabase";
 
 const CONDITIONS: { value: ProductCondition; label: string; desc: string; color: string }[] = [
@@ -18,6 +17,50 @@ const CONDITIONS: { value: ProductCondition; label: string; desc: string; color:
   { value: "Good",      label: "Good",      desc: "Light wear, works perfectly", color: "bg-blue-100 text-blue-700 border-blue-200" },
   { value: "Fair",      label: "Fair",      desc: "Visible wear, fully working", color: "bg-amber-100 text-amber-700 border-amber-200" },
 ];
+
+// Storefront image spec (IMAGE-GUIDE.md, 2026-07-27): square, 1500×1500 ideal,
+// under 500 KB. levelx-images.py already enforces this for the cowork path; this
+// is the same treatment for images dropped straight onto the form, so both paths
+// put comparable files in the bucket. Without it a 6 MB phone photo would be
+// served verbatim on every product page.
+const IMAGE_SIDE = 1500;
+const IMAGE_MAX_KB = 500;
+
+/** Square white-background WebP. Never upscales — a 600px source stays 600px. */
+async function toStoreWebp(file: File): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  const side = Math.min(IMAGE_SIDE, Math.max(bitmap.width, bitmap.height));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = side;
+  canvas.height = side;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    throw new Error("Canvas unavailable");
+  }
+
+  // White, not transparent: WebP keeps alpha, and a transparent PNG would show
+  // the page background through the product on a dark card.
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, side, side);
+
+  const scale = Math.min(side / bitmap.width, side / bitmap.height);
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+  ctx.drawImage(bitmap, (side - w) / 2, (side - h) / 2, w, h);
+  bitmap.close();
+
+  let out: Blob | null = null;
+  for (const quality of [0.85, 0.75, 0.65, 0.55]) {
+    out = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", quality));
+    if (out && out.size <= IMAGE_MAX_KB * 1024) break;
+  }
+  if (!out) throw new Error("Could not encode image");
+
+  const base = file.name.replace(/\.[^.]+$/, "") || "image";
+  return new File([out], `${base}.webp`, { type: "image/webp" });
+}
 
 export interface VariantDraft {
   sku_code: string;
@@ -134,54 +177,80 @@ export function ProductForm({ product, variants, translations, onClose, onSaved,
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
-   * Uploads used to be `if (!error) { ...push url }` with no else: a rejected upload was
-   * skipped in silence, the spinner stopped, and nothing appeared — indistinguishable
-   * from an upload that never started.
+   * Uploads go through `POST /api/admin/upload`, not the browser Supabase client.
    *
-   * This matters more than a generic "handle the error" note, because the browser
-   * client cannot currently succeed at all: `storage.objects` has RLS enabled with no
-   * policies, so the anon key is denied every write. Until a policy exists, the honest
-   * outcome is a clear message pointing at the working path (scripts/levelx-images.py),
-   * not a spinner that resolves to nothing.
+   * They used to call `supabase.storage.upload()` from here and could never succeed:
+   * login is a Server Action storing the session in httpOnly cookies, so the browser
+   * singleton in `lib/supabase.ts` has no session and every request it makes is `anon`
+   * — which storage RLS rightly denies. The server route runs `requireAdmin()`, so the
+   * upload reaches storage as an authenticated admin.
+   *
+   * The earlier bug is still worth not reintroducing: this was once
+   * `if (!error) { ...push url }` with no else, so a rejected upload was skipped in
+   * silence — the spinner stopped and nothing appeared, indistinguishable from an
+   * upload that never started. Every failure below produces a visible message.
    */
   const uploadImages = useCallback(async (files: File[]) => {
-    setUploading(true);
-    setError(null);
-    const urls: string[] = [];
-    const failed: string[] = [];
-    let denied = false;
+    const problems: string[] = [];
+    const images: File[] = [];
 
     for (const file of files) {
       if (!file.type.startsWith("image/")) {
-        failed.push(`${file.name} (not an image)`);
+        problems.push(`${file.name} (not an image)`);
         continue;
       }
-      const ext = file.name.split(".").pop();
-      const path = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage
-        .from("product-images")
-        .upload(path, file, { cacheControl: "3600", upsert: false });
+      images.push(file);
+    }
 
-      if (error) {
-        const msg = error.message ?? "";
-        if (/policy|denied|unauthor|forbidden|row-level/i.test(msg)) denied = true;
-        failed.push(`${file.name} (${msg || "upload failed"})`);
-        continue;
+    if (images.length === 0) {
+      setError(problems.length ? `Could not upload: ${problems.join(", ")}` : "No images selected.");
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+
+    const body = new FormData();
+    body.append("slug", form.slug || form.name || "");
+
+    for (const file of images) {
+      try {
+        body.append("files", await toStoreWebp(file));
+      } catch {
+        problems.push(`${file.name} (could not be read as an image)`);
       }
-      const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(path);
-      urls.push(publicUrl);
     }
 
-    if (urls.length) setForm((f) => ({ ...f, images: [...f.images, ...urls] }));
-    if (failed.length) {
-      setError(
-        denied
-          ? "Image upload is blocked by storage permissions. Add the images with the image pipeline script instead, then reload this page."
-          : `Could not upload: ${failed.join(", ")}`,
-      );
+    try {
+      const res = await fetch("/api/admin/upload", { method: "POST", body });
+
+      if (res.status === 401 || res.status === 403) {
+        setError("Your session expired, or this account is not an admin. Sign in again and retry.");
+        return;
+      }
+
+      const data = (await res.json().catch(() => null)) as
+        | { urls?: string[]; failed?: string[]; error?: string }
+        | null;
+
+      if (!data) {
+        setError(`Upload failed (HTTP ${res.status}).`);
+        return;
+      }
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
+
+      if (data.urls?.length) setForm((f) => ({ ...f, images: [...f.images, ...data.urls!] }));
+      problems.push(...(data.failed ?? []));
+      if (problems.length) setError(`Could not upload: ${problems.join(", ")}`);
+    } catch {
+      setError("Upload failed — check your connection and try again.");
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
-  }, []);
+  }, [form.slug, form.name]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
