@@ -47,3 +47,6 @@ supabase/.temp/
 
 .vercel
 .env*
+
+# Word lock files — created whenever a .docx here is open in Word
+~$*
