@@ -254,10 +254,17 @@ const doc = new Document({
         [2600, 6426]
       ),
       Gap(180),
-      Danger("🛑 أشهر سببين إن الحفظ يترفض", [
-        [R("١) خانة ", { size: 22, color: INK }), RL("SKU Code", { size: 20, bold: true, color: INK }), R(" سايبها فاضية. ", { size: 22, color: INK }), R("دي إجبارية", { size: 22, bold: true, color: RED }), R(" — اكتب أي كود من عندك زي ", { size: 22, color: INK }), RL("LX-001", { size: 19, color: GREY }), R(". لو سبتها فاضية، الحفظ هيترفض وهتشوف:", { size: 22, color: INK })],
+      Danger("🛑 خانتين من غيرهم الحفظ هيترفض", [
+        [R("١) ", { size: 22, bold: true, color: RED }), RL("SKU Code", { size: 20, bold: true, color: INK }), R(" — كود من عندك تعرف بيه المنتج، زي ", { size: 22, color: INK }), RL("LX-001", { size: 19, color: GREY }), R(". لو سبتها فاضية هتشوف:", { size: 22, color: INK })],
         [RL("Variant 1 — SKU is required", { size: 19, bold: true, color: RED })],
-        [R("٢) خانة ", { size: 22, color: INK }), RL("Regular Price", { size: 20, bold: true, color: INK }), R(" سايبها فاضية. ", { size: 22, color: INK }), R("دي أخطر", { size: 22, bold: true, color: RED }), R(" — لأنها ", { size: 22, color: INK }), R("مش بتديك رسالة خطأ", { size: 22, bold: true, color: INK }), R("! بتتحسب صفر، والمنتج بيتعرض للبيع بـ ", { size: 22, color: INK }), R("صفر جنيه", { size: 22, bold: true, color: RED }), R(". اكتب السعر الحقيقي دايماً.", { size: 22, color: INK })],
+        [R("٢) ", { size: 22, bold: true, color: RED }), RL("Regular Price", { size: 20, bold: true, color: INK }), R(" — السعر بالجنيه. لو سبتها فاضية هتشوف:", { size: 22, color: INK })],
+        [RL("Variant 1 — Price is required", { size: 19, bold: true, color: RED })],
+        [R("ولو كتبت فيها صفر:", { size: 22, color: INK })],
+        [RL("Variant 1 — Price must be greater than zero", { size: 19, bold: true, color: RED })],
+      ]),
+      Gap(200),
+      Tip("ليه الموقع بيمنع سعر الصفر؟", [
+        [R("قبل كده، لو سبت خانة السعر فاضية كان بيحفظ عادي ويحسبها ", { size: 22, color: INK }), R("صفر", { size: 22, bold: true, color: INK }), R(" — والمنتج يروح للبيع بصفر جنيه من غير ما حد ياخد باله. ", { size: 22, color: INK }), R("دلوقتي بقى بيرفض", { size: 22, bold: true, color: "0F766E" }), R(" بدل ما يسيبك تكتشفها من أول طلب.", { size: 22, color: INK })],
       ]),
       Gap(200),
       Note("الرسالة بتقول لك الخانة بالظبط", [
@@ -445,9 +452,8 @@ const doc = new Document({
         [
           ["ضفت منتج ومش لاقيه في الموقع", "افتحه وشوف فيه سعر ولا لأ. غالباً دي المشكلة."],
           ["المنتج محفوظ بس مش ظاهر", "مفتاح النشر مقفول — افتحه"],
-          [[R("الحفظ بيقول ", { size: 20, color: GREY }), RL("Validation failed", { size: 19, color: GREY })], "اقرا باقي الرسالة — بتسمّي الخانة الناقصة. غالباً SKU."],
+          ["الحفظ اترفض وظهرت رسالة حمرا", "الرسالة بتسمّي الخانة والصف — غالباً SKU أو السعر"],
           ["الصورة مش بترفع وبتظهر رسالة", "غالباً جلستك انتهت — ادخل بحسابك تاني وجرّب"],
-          ["المنتج بيتباع بصفر جنيه", "خانة السعر كانت فاضية — افتح المنتج واكتب السعر"],
           ["عدّلت حاجة ومش ظاهرة في الموقع", "استنى شوية، الموقع بيحدّث نفسه كل ساعة"],
           ["الأرقام في أول صفحة غريبة", "دي أرقام تجريبية — شوف Orders"],
           ["مش عارف أدخل", "اضغط «نسيت كلمة المرور؟» — هييجي لك إيميل فيه لينك"],

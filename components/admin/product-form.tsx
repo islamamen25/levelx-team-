@@ -392,7 +392,11 @@ export function ProductForm({ product, variants, translations, onClose, onSaved,
       ),
       variants: form.variants.map((v) => ({
         sku_code: v.sku_code,
-        price: parseFloat(v.price) || 0,
+        // null, not 0, for a blank or unparseable box. `parseFloat("") || 0`
+        // sent a real 0, which validated fine and listed the product at 0 EGP
+        // without showing anything. NaN also serialises to null, so "abc" is
+        // rejected as a missing price rather than silently becoming free.
+        price: v.price.trim() === "" ? null : Number(v.price),
         sale_price: v.sale_price ? parseFloat(v.sale_price) : null,
         discount_badge: v.discount_badge || null,
         stock_quantity: parseInt(v.stock_quantity) || 0,

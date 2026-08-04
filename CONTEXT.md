@@ -182,8 +182,24 @@ starts `sku_code` as `""`. Two layers each dropped the detail: the route sent
 `variants`), and the form read only `err.error`. The route now returns full issue paths and
 the form maps them to on-screen labels — that failure reads **"Variant 1 — SKU is required"**.
 
-> ⚠️ Still silent: an **empty price becomes 0** (`parseFloat("") || 0`) and saves without
-> complaint, listing the product at 0 EGP. Documented in both guides; not yet fixed in code.
+**The empty-price trap is now closed too.** `parseFloat("") || 0` sent a real 0, which passed
+`nonnegative()` and listed the product at 0 EGP with nothing shown anywhere — the only
+silent way to lose money on this form. The form now sends `null` for a blank *or*
+unparseable box (`NaN` serialises to `null`), and `price` is `z.number().positive()`.
+Checked against live data before tightening: the lowest existing price is 1300, so no
+current product became uneditable.
+
+| price box | result |
+|---|---|
+| blank / `abc` | `Price is required` |
+| `0` / `-5` | `Price must be greater than zero` |
+| `1300`, `1300.50` | accepted |
+
+> **Testing note worth keeping.** The first runs of this check resolved **zod 3.25.67** from
+> outside the project, not the project's own **4.3.6**, because the scratch script lived
+> outside the repo and Node walked up from *there*. Zod 3 ignores `z.number({ error })`,
+> so the messages looked broken when they were fine. Any script that exercises project
+> schemas must sit **inside** the repo or it may silently test a different library version.
 
 ### O. n8n — product import pipeline is RETIRED AND STOPPED *(updated 2026-08-03)*
 Product data is now generated via **cowork** and written **straight to Supabase**.
