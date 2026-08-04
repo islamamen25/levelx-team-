@@ -147,6 +147,44 @@ inputs and discarded them, then told the customer "Order placed!". No `orders` t
   request to the page leaks **zero** order PII — checked against a seeded order with
   unique markers, all absent from the response.
 
+### Q. Product image upload from the dashboard — now works *(2026-08-04)*
+Dropping an image on the product form could never succeed. **Two independent blockers**,
+which matters: fixing either one alone leaves it broken.
+
+1. **`storage.objects` had RLS enabled with zero policies** — every write denied. The only
+   working path was `levelx-images.py`, which uses the service_role key and bypasses RLS.
+2. **The form uploaded via the browser Supabase singleton, which has no session.** Login is
+   a Server Action storing the token in httpOnly cookies (`login/actions.ts`), while
+   `lib/supabase.ts` is a plain `createClient()` reading empty localStorage. Its requests
+   were anonymous.
+
+- **Migration `0006_product_images_storage_policies.sql`** — admin-only
+  SELECT/INSERT/UPDATE/DELETE on bucket `product-images`, gated on `is_admin()`. Bucket
+  `file_size_limit` set to 5 MB; `allowed_mime_types` left null on purpose so the script
+  cannot fail in a second, more confusing way.
+- **`app/api/admin/upload/route.ts`** — `requireAdmin()` + rate limit, so the upload reaches
+  storage as an authenticated admin. Returns `207` when some files succeed and others fail.
+- **Client-side downscale** in `product-form.tsx` to square 1500×1500 WebP <500 KB, matching
+  what the script produces, so the manual path cannot put a 6 MB phone photo on a PDP.
+- **Neither pre-existing path changed:** `service_role` has `rolbypassrls`, and public
+  buckets serve `/object/public/` without evaluating SELECT policies.
+- **Verified:** admin INSERT accepted; anon and authenticated-non-admin both rejected with
+  `42501`; public read 200; route 401 without a session; a 5.3 MB PNG became a 12.9 KB
+  1500×1500 WebP in a real browser. **Not verified:** a logged-in admin dropping a file,
+  which needs the account password.
+- **Both `.docx` guides rewritten** — they said upload was blocked and always would be.
+
+### R. Save errors now name the failing field *(2026-08-04)*
+A 422 from the product save surfaced as the two words "Validation failed" on a form with
+~20 inputs. The commonest first-time failure is a blank SKU, because `defaultVariant()`
+starts `sku_code` as `""`. Two layers each dropped the detail: the route sent
+`error.flatten()` (which groups by `path[0]`, so `variants.0.sku_code` arrived as just
+`variants`), and the form read only `err.error`. The route now returns full issue paths and
+the form maps them to on-screen labels — that failure reads **"Variant 1 — SKU is required"**.
+
+> ⚠️ Still silent: an **empty price becomes 0** (`parseFloat("") || 0`) and saves without
+> complaint, listing the product at 0 EGP. Documented in both guides; not yet fixed in code.
+
 ### O. n8n — product import pipeline is RETIRED AND STOPPED *(updated 2026-08-03)*
 Product data is now generated via **cowork** and written **straight to Supabase**.
 The write contract is [`COWORK.md`](COWORK.md). Do not use n8n for product data.
