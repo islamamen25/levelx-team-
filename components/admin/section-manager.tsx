@@ -2,25 +2,44 @@
 
 import { useState } from "react";
 import {
-  ChevronUp, ChevronDown, Eye, EyeOff, Plus, GripVertical, Trash2, ShoppingBag
+  ChevronUp, ChevronDown, Eye, EyeOff, Plus, GripVertical, Trash2, ShoppingBag, Pencil
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ProductSelectorModal } from "@/components/admin/product-selector-modal";
+import { SectionContentEditor } from "@/components/admin/section-content-editor";
+import type { BrandOverride, CategoryTileOverride, TileShape, FeaturedChipOverride } from "@/lib/store-config";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+// PageSection is intentionally re-declared here rather than imported from
+// lib/store-config.ts (pre-existing split, not something this change unifies) — but its
+// field *value* types below are imported, so a brand/tile shape can't drift between the
+// two independently of that.
 export interface PageSection {
   id:           string;
   label:        string;
   visible:      boolean;
   order:        number;
   product_ids?: string[];
+  image_url?:   string;
+  brands?:      BrandOverride[];
+  tile_shape?:  TileShape;
+  tiles?:       CategoryTileOverride[];
+  chips?:       FeaturedChipOverride[];
+  tile_accent_color?: string;
+  tile_text_color?: string;
+  tile_text_size?:  "sm" | "md" | "lg";
 }
 
-// Sections that are pure layout — no product selection needed
-const LAYOUT_ONLY = new Set(["hero", "categories", "newsletter", "trust", "brands"]);
+// Sections that are pure layout — no product selection needed. "brands" used to be
+// here too, but its carousel pulls from the same unfiltered getProductsFiltered() as
+// every other product section — the picker works for it exactly the same way.
+const LAYOUT_ONLY = new Set(["hero", "categories", "newsletter", "trust"]);
+
+// Sections with a Builder-editable image/brands/tiles payload beyond visibility/order.
+const HAS_CONTENT_EDITOR = new Set(["featured", "brands", "categories"]);
 
 // Built-in section icons / colours
 const SECTION_META: Record<string, { emoji: string; color: string }> = {
@@ -50,6 +69,8 @@ export function SectionManager({ value, onChange }: SectionManagerProps) {
   const [deleteIdx,    setDeleteIdx]    = useState<number | null>(null);
   // Product selector state
   const [selectorIdx,  setSelectorIdx]  = useState<number | null>(null);
+  // Content editor state (side image / brands / category tiles)
+  const [contentIdx,   setContentIdx]   = useState<number | null>(null);
 
   // Sorted by order
   const sorted = [...value].sort((a, b) => a.order - b.order);
@@ -94,6 +115,14 @@ export function SectionManager({ value, onChange }: SectionManagerProps) {
   const updateProductIds = (idx: number, ids: string[]) => {
     const list = sorted.map((s, i) =>
       i === idx ? { ...s, product_ids: ids } : s
+    );
+    onChange(reindex(list));
+  };
+
+  // ── Update image_url / brands / tile_shape / tiles for a section ─────────
+  const updateContent = (idx: number, patch: Partial<PageSection>) => {
+    const list = sorted.map((s, i) =>
+      i === idx ? { ...s, ...patch } : s
     );
     onChange(reindex(list));
   };
@@ -169,8 +198,26 @@ export function SectionManager({ value, onChange }: SectionManagerProps) {
                       · {section.product_ids!.length} product{section.product_ids!.length !== 1 ? "s" : ""}
                     </span>
                   )}
+                  {/* Per-category icon/colour lives on the Categories screen, not here —
+                      this strip only overrides shape/photo/label on top of it. */}
+                  {section.id === "categories" && (
+                    <span className="text-[10px] text-gray-300">
+                      · icons &amp; colours: Categories
+                    </span>
+                  )}
                 </div>
               </div>
+
+              {/* Edit content button — image / brands / tiles, for sections that have any */}
+              {HAS_CONTENT_EDITOR.has(section.id) && (
+                <button
+                  onClick={() => setContentIdx(idx)}
+                  className="shrink-0 flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-[var(--color-slate)] transition-all hover:border-[var(--color-mint)] hover:text-[var(--color-mint)]"
+                  title="Edit this section's image, brands or tiles">
+                  <Pencil className="h-3 w-3" />
+                  Edit content
+                </button>
+              )}
 
               {/* Product selector button — only for product-based sections */}
               {!LAYOUT_ONLY.has(section.id) && (
@@ -315,6 +362,16 @@ export function SectionManager({ value, onChange }: SectionManagerProps) {
             updateProductIds(selectorIdx, ids);
             setSelectorIdx(null);
           }}
+        />
+      )}
+
+      {/* ── Content Editor (image / brands / tiles) ── */}
+      {contentIdx !== null && sorted[contentIdx] && (
+        <SectionContentEditor
+          open={contentIdx !== null}
+          onClose={() => setContentIdx(null)}
+          section={sorted[contentIdx]}
+          onConfirm={(patch) => updateContent(contentIdx, patch)}
         />
       )}
 

@@ -7,7 +7,7 @@ import { Bestsellers }    from "@/components/home/bestsellers";
 import { TopBrands }      from "@/components/home/top-brands";
 import { Newsletter }     from "@/components/home/newsletter";
 import { TrustBanner }    from "@/components/home/trust-banner";
-import { getStoreConfig } from "@/lib/store-config";
+import { getStoreConfig, type PageSection } from "@/lib/store-config";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -15,13 +15,38 @@ type Props = {
 
 const SECTION_REGISTRY: Record<
   string,
-  ({ locale }: { locale: string }) => React.ReactElement
+  ({ locale, section }: { locale: string; section: PageSection }) => React.ReactElement
 > = {
   hero:        ({ locale }) => <HeroSlider locale={locale} />,
-  categories:  ({ locale }) => <CategoryTiles locale={locale} />,
-  featured:    ({ locale }) => <Featured locale={locale} />,
-  bestsellers: ({ locale }) => <Bestsellers locale={locale} />,
-  brands:      ({ locale }) => <TopBrands locale={locale} />,
+  categories:  ({ locale, section }) => (
+    <CategoryTiles
+      locale={locale}
+      tileShape={section.tile_shape}
+      tiles={section.tiles}
+      tileAccentColor={section.tile_accent_color}
+      tileTextColor={section.tile_text_color}
+      tileTextSize={section.tile_text_size}
+    />
+  ),
+  featured:    ({ locale, section }) => (
+    <Featured
+      locale={locale}
+      imageUrl={section.image_url}
+      productIds={section.product_ids}
+      chips={section.chips}
+    />
+  ),
+  bestsellers: ({ locale, section }) => (
+    <Bestsellers locale={locale} productIds={section.product_ids} />
+  ),
+  brands:      ({ locale, section }) => (
+    <TopBrands
+      locale={locale}
+      imageUrl={section.image_url}
+      brands={section.brands}
+      productIds={section.product_ids}
+    />
+  ),
   newsletter:  ({ locale }) => <Newsletter locale={locale} />,
   trust:       ({ locale }) => <TrustBanner locale={locale} />,
 };
@@ -34,7 +59,7 @@ export default async function HomePage({ params }: Props) {
   const sections = [...layout]
     .sort((a, b) => a.order - b.order)
     .filter((s) => s.visible)
-    .map((s) => ({ id: s.id, Component: SECTION_REGISTRY[s.id] }))
+    .map((s) => ({ id: s.id, section: s, Component: SECTION_REGISTRY[s.id] }))
     .filter((s) => s.Component !== undefined);
 
   return (
@@ -47,8 +72,8 @@ export default async function HomePage({ params }: Props) {
       <h1 className="sr-only">
         {tc("brand")} — {tc("tagline")}
       </h1>
-      {sections.map(({ id, Component }) => (
-        <Component key={id} locale={locale} />
+      {sections.map(({ id, section, Component }) => (
+        <Component key={id} locale={locale} section={section} />
       ))}
     </>
   );

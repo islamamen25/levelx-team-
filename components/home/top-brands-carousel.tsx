@@ -6,11 +6,23 @@ import { Link } from "@/i18n/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { DbProduct, DbVariant } from "@/lib/supabase";
 import { ProductCard } from "@/components/plp/product-card";
+import { isRenderableImage } from "@/lib/images";
+import type { BrandOverride } from "@/lib/store-config";
+
+export type { BrandOverride };
 
 interface TopBrandsCarouselProps {
   products: { product: DbProduct; variants: DbVariant[] }[];
   locale: string;
+  /** Left lifestyle photo — Builder-editable. Falls back to DEFAULT_BRANDS_IMAGE when unset
+      or when the host isn't in lib/images.ts's allowlist (cowork writes straight to the DB
+      and skips the Builder's own validation, so this guard is load-bearing, not decorative). */
+  imageUrl?: string;
+  /** Builder override for the whole chip row. Empty/absent ⇒ the built-in BRAND_CHIPS below. */
+  brands?: BrandOverride[];
 }
+
+const DEFAULT_BRANDS_IMAGE = "https://images.unsplash.com/photo-1776919017122-8140e279c889?w=800&q=80&fit=crop";
 
 /* شعار Apple يعتمد اعتيادياً على الحرف الخاص  في الخصائص الحصرية لأنظمة Apple
    فقط (SF Pro/Helvetica Neue) — يظهر مربّعاً فارغاً على أي نظام آخر. SVG صريح
@@ -23,19 +35,87 @@ function AppleLogo() {
   );
 }
 
-const BRAND_CHIPS: { name: string; label: string; icon?: React.ReactNode; style: React.CSSProperties }[] = [
-  { name: "Apple",     label: "",         icon: <AppleLogo />, style: {} },
-  { name: "Samsung",   label: "SAMSUNG",  style: { fontFamily: "sans-serif", fontSize: "11px", letterSpacing: "0.08em", fontWeight: 900 } },
-  { name: "Sony",      label: "SONY",     style: { fontFamily: "sans-serif", fontSize: "14px", letterSpacing: "0.15em", fontWeight: 900 } },
-  { name: "Google",    label: "Google",   style: { fontFamily: "'Segoe UI', sans-serif", fontSize: "15px", fontWeight: 500, color: "#4285f4" } },
-  { name: "Dell",      label: "DELL",     style: { fontFamily: "sans-serif", fontSize: "16px", letterSpacing: "0.05em", fontWeight: 900, color: "#007db8" } },
-  { name: "Dyson",     label: "dyson",    style: { fontFamily: "sans-serif", fontSize: "14px", fontWeight: 900, letterSpacing: "0.02em" } },
-  { name: "Nintendo",  label: "Nintendo", style: { fontFamily: "sans-serif", fontSize: "11px", fontWeight: 900, color: "#e60012", letterSpacing: "0.02em" } },
-  { name: "Bose",      label: "BOSE",     style: { fontFamily: "sans-serif", fontSize: "14px", letterSpacing: "0.12em", fontWeight: 900 } },
+/**
+ * Every non-Apple brand renders through this one component instead of a hand-tuned
+ * <span style>. Sharing one viewBox/height/baseline is what actually fixes the
+ * inconsistency — each brand keeps its own weight/case/colour (that's what makes it
+ * recognisable), but the *rendering technique* is now identical across the row, so the
+ * optical size and vertical alignment line up tile to tile. Custom brands added from the
+ * Builder (no known typographic identity) fall through to this with the defaults.
+ */
+function Wordmark({
+  text,
+  weight = 800,
+  size = 17,
+  spacing = 0,
+  color = "currentColor",
+  italic = false,
+  tspanColors,
+}: {
+  text: string;
+  weight?: number;
+  size?: number;
+  spacing?: number;
+  color?: string;
+  italic?: boolean;
+  /** Per-character fill override, e.g. Google's four-colour wordmark. */
+  tspanColors?: string[];
+}) {
+  return (
+    <svg viewBox="0 0 140 40" width="64" height="20" aria-hidden>
+      <text
+        x="70"
+        y="26"
+        textAnchor="middle"
+        fontFamily="ui-sans-serif, system-ui, sans-serif"
+        fontWeight={weight}
+        fontSize={size}
+        letterSpacing={spacing}
+        fontStyle={italic ? "italic" : "normal"}
+        fill={color}
+      >
+        {tspanColors
+          ? [...text].map((ch, i) => <tspan key={i} fill={tspanColors[i] ?? color}>{ch}</tspan>)
+          : text}
+      </text>
+    </svg>
+  );
+}
+
+const GOOGLE_COLORS = ["#4285F4", "#EA4335", "#FBBC05", "#4285F4", "#34A853", "#EA4335"];
+
+const BRAND_CHIPS: { name: string; render: () => React.ReactNode }[] = [
+  { name: "Apple",    render: () => <AppleLogo /> },
+  { name: "Samsung",  render: () => <Wordmark text="SAMSUNG"  weight={700} size={15} spacing={1.5} /> },
+  { name: "Sony",     render: () => <Wordmark text="SONY"     weight={700} size={19} spacing={3} /> },
+  { name: "Google",   render: () => <Wordmark text="Google"   weight={500} size={19} tspanColors={GOOGLE_COLORS} /> },
+  { name: "Dell",     render: () => <Wordmark text="DELL"     weight={800} size={19} spacing={1} color="#007DB8" /> },
+  { name: "Dyson",    render: () => <Wordmark text="dyson"    weight={800} size={18} spacing={0.5} /> },
+  { name: "Nintendo", render: () => <Wordmark text="Nintendo" weight={800} size={15} italic color="#E60012" /> },
+  { name: "Bose",     render: () => <Wordmark text="BOSE"     weight={800} size={18} spacing={3} /> },
 ];
 
-export function TopBrandsCarousel({ products, locale }: TopBrandsCarouselProps) {
+export function TopBrandsCarousel({ products, locale, imageUrl, brands }: TopBrandsCarouselProps) {
   const isAr = locale === "ar";
+  const heroImage = isRenderableImage(imageUrl) ? imageUrl! : DEFAULT_BRANDS_IMAGE;
+  // Non-empty Builder override wins; otherwise the built-in row from 2a. The built-ins
+  // always show their name (they're the well-known defaults); a Builder-added brand's
+  // caption is optional — show_label defaults to true so rows saved before this field
+  // existed keep looking exactly as they do today.
+  const chips: { name: string; showLabel: boolean; render: () => React.ReactNode }[] =
+    brands && brands.length > 0
+      ? brands.map((b) => ({
+          name: b.name,
+          showLabel: b.show_label !== false,
+          render: () =>
+            isRenderableImage(b.logo_url) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={b.logo_url} alt={b.name} className="h-10 w-10 object-contain" />
+            ) : (
+              <Wordmark text={b.name} />
+            ),
+        }))
+      : BRAND_CHIPS.map((b) => ({ ...b, showLabel: true }));
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -69,26 +149,13 @@ export function TopBrandsCarousel({ products, locale }: TopBrandsCarouselProps) 
           {/* Left: lifestyle image */}
           <div className="relative overflow-hidden rounded-2xl min-h-[200px] md:col-span-4 md:min-h-[460px]">
             <Image
-              src="https://images.unsplash.com/photo-1776919017122-8140e279c889?w=800&q=80&fit=crop"
+              src={heroImage}
               alt=""
               fill
               sizes="(max-width: 768px) 100vw, 320px"
               className="object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />
-            <div className="relative flex h-full flex-col justify-between p-6">
-              <div className="flex flex-wrap gap-2">
-                <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/70">
-                  {isAr ? "ماركات عالمية" : "global brands"}
-                </span>
-                <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold text-white/70">
-                  {isAr ? "ضمان سنة" : "1-year warranty"}
-                </span>
-              </div>
-              <p className="text-sm font-medium text-white/80">
-                {isAr ? "تكنولوجيا مختارة بعناية" : "Carefully curated tech"}
-              </p>
-            </div>
           </div>
 
           {/* Right column */}
@@ -96,21 +163,19 @@ export function TopBrandsCarousel({ products, locale }: TopBrandsCarouselProps) 
             {/* Brand logo chips */}
             <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex gap-3" style={{ width: "max-content" }}>
-                {BRAND_CHIPS.map((brand) => (
+                {chips.map((brand) => (
                   <Link
                     key={brand.name}
                     href={{ pathname: "/products", query: { brand: brand.name } }}
                     locale={locale as "en" | "ar"}
                     className="group flex flex-col items-center gap-2"
                   >
-                    <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-[var(--color-iron)] bg-white shadow-sm transition-all duration-200 group-hover:border-ceramic group-hover:shadow-md">
-                      {brand.icon ?? (
-                        <span className="select-none text-center leading-none text-ceramic" style={brand.style}>
-                          {brand.label}
-                        </span>
-                      )}
+                    <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-[var(--color-iron)] bg-white shadow-sm transition-all duration-200 group-hover:border-ceramic group-hover:shadow-md text-ceramic">
+                      {brand.render()}
                     </div>
-                    <span className="text-center text-[11px] font-medium text-slate">{brand.name}</span>
+                    {brand.showLabel && (
+                      <span className="text-center text-[11px] font-medium text-slate">{brand.name}</span>
+                    )}
                   </Link>
                 ))}
               </div>

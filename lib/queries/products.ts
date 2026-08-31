@@ -132,12 +132,17 @@ export async function getProductsFiltered(params: {
   priceMax?: number;
   page?: number;
   pageSize?: number;
+  /** Explicit product ids — the Storefront Builder's "Pick Products" picker. When set,
+      this replaces pagination entirely (a curated pin list, not a filtered page), so
+      `page`/`pageSize` are ignored. Order is NOT preserved — Postgres's `IN (...)`
+      returns rows in whatever order it likes; callers that care use orderByIds() below. */
+  ids?: string[];
 }): Promise<ProductWithVariants[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("products");
 
-  const { categorySlug, brands, conditions, priceMin, priceMax, page = 1, pageSize = 24 } = params;
+  const { categorySlug, brands, conditions, priceMin, priceMax, page = 1, pageSize = 24, ids } = params;
 
   const supabase = createSupabasePublicClient();
 
@@ -158,7 +163,20 @@ export async function getProductsFiltered(params: {
     .select("*")
     .eq("is_active", true)
     .not("slug", "is", null)
-    .range((page - 1) * pageSize, page * pageSize - 1);
+    // Discovered while verifying this change: with no explicit order, .range() below had
+    // no stable basis to page on, so Featured/Bestsellers/Top brands — all calling this
+    // with no filter, differing only in pageSize — could each land on a different subset
+    // of `is_active` rows whenever candidates outnumbered the page. Same sort
+    // getProductsAdmin() already uses further down this file, now shared by both.
+    .order("created_at", { ascending: false });
+
+  // A pin list is a fixed set, not a page — applying .range() on top of .in() would
+  // silently truncate a Builder pick longer than the default page size.
+  if (ids?.length) {
+    query = query.in("id", ids);
+  } else {
+    query = query.range((page - 1) * pageSize, page * pageSize - 1);
+  }
 
   if (categoryId) query = query.eq("category_id", categoryId);
   if (brands?.length) query = query.in("brand", brands);
@@ -194,6 +212,19 @@ export async function getProductsFiltered(params: {
   return products
     .filter((p) => (variantsByProduct[p.id]?.length ?? 0) > 0)
     .map((p) => ({ product: p, variants: variantsByProduct[p.id] }));
+}
+
+/**
+ * Re-orders a product list to match an explicit id order — used after
+ * `getProductsFiltered({ ids })` so a Builder-pinned section (Top deals, Bestsellers,
+ * Top brands) shows products in the order the admin arranged them, not whatever order
+ * Postgres's `IN (...)` happened to return. Ids that no longer resolve to a visible
+ * product (deleted, deactivated, or lost its last variant) are dropped rather than
+ * leaving a gap.
+ */
+export function orderByIds<T extends { product: { id: string } }>(items: T[], ids: string[]): T[] {
+  const byId = new Map(items.map((item) => [item.product.id, item]));
+  return ids.map((id) => byId.get(id)).filter((item): item is T => item !== undefined);
 }
 
 export async function getBrandsForCategory(categorySlug?: string): Promise<string[]> {

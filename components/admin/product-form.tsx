@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import type { DbProduct, DbVariant, DbTranslation, ProductCondition } from "@/lib/supabase";
+import { toSquareWebp } from "@/lib/image-client";
 
 const CONDITIONS: { value: ProductCondition; label: string; desc: string; color: string }[] = [
   { value: "Premium",   label: "Premium",   desc: "Like new, flawless",          color: "bg-violet-100 text-violet-700 border-violet-200" },
@@ -23,44 +24,9 @@ const CONDITIONS: { value: ProductCondition; label: string; desc: string; color:
 // is the same treatment for images dropped straight onto the form, so both paths
 // put comparable files in the bucket. Without it a 6 MB phone photo would be
 // served verbatim on every product page.
-const IMAGE_SIDE = 1500;
-const IMAGE_MAX_KB = 500;
-
-/** Square white-background WebP. Never upscales — a 600px source stays 600px. */
-async function toStoreWebp(file: File): Promise<File> {
-  const bitmap = await createImageBitmap(file);
-  const side = Math.min(IMAGE_SIDE, Math.max(bitmap.width, bitmap.height));
-
-  const canvas = document.createElement("canvas");
-  canvas.width = side;
-  canvas.height = side;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    bitmap.close();
-    throw new Error("Canvas unavailable");
-  }
-
-  // White, not transparent: WebP keeps alpha, and a transparent PNG would show
-  // the page background through the product on a dark card.
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, side, side);
-
-  const scale = Math.min(side / bitmap.width, side / bitmap.height);
-  const w = Math.round(bitmap.width * scale);
-  const h = Math.round(bitmap.height * scale);
-  ctx.drawImage(bitmap, (side - w) / 2, (side - h) / 2, w, h);
-  bitmap.close();
-
-  let out: Blob | null = null;
-  for (const quality of [0.85, 0.75, 0.65, 0.55]) {
-    out = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", quality));
-    if (out && out.size <= IMAGE_MAX_KB * 1024) break;
-  }
-  if (!out) throw new Error("Could not encode image");
-
-  const base = file.name.replace(/\.[^.]+$/, "") || "image";
-  return new File([out], `${base}.webp`, { type: "image/webp" });
-}
+// toSquareWebp() itself now lives in lib/image-client.ts — extracted once the
+// Storefront Builder's brand-logo / category-tile editors needed the identical
+// square/white-bg/size-budget treatment, so this file and that one couldn't drift.
 
 export interface VariantDraft {
   sku_code: string;
@@ -274,7 +240,7 @@ export function ProductForm({ product, variants, translations, onClose, onSaved,
 
     for (const file of images) {
       try {
-        body.append("files", await toStoreWebp(file));
+        body.append("files", await toSquareWebp(file));
       } catch {
         problems.push(`${file.name} (could not be read as an image)`);
       }

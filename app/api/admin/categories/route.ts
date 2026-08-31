@@ -48,7 +48,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("categories")
-    .select("id, name, slug, parent_id, is_visible")
+    .select("id, name, slug, parent_id, is_visible, in_carousel")
     .order("name");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);

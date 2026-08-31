@@ -105,14 +105,17 @@ export function ProductCard({ product, variants, locale }: ProductCardProps) {
       <div className="flex flex-1 flex-col gap-1 p-3 pb-0">
         {/* dir="auto" إلزامي: اسم المنتج يأتي من الـ DB وقد يكون لاتينياً
             داخل صفحة RTL، فتنتقل الأرقام لآخر السلسلة —
-            "3-in-1 Multi USB Charging Cable" ← "in-1 Multi USB Charging Cable-3". */}
-        <h3 dir="auto" className="line-clamp-2 text-sm font-semibold leading-snug text-ceramic">
+            "3-in-1 Multi USB Charging Cable" ← "in-1 Multi USB Charging Cable-3".
+            min-h-[2.5rem] يحجز ارتفاع سطرين دايماً — من غيره اسم قصير بيرفع
+            السعر لفوق واسم طويل بينزّله، فالكروت جنب بعض في نفس الصف بتطلع
+            مش متسقة حتى لو قواعدها متساوية. */}
+        <h3 dir="auto" className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-ceramic">
           {product.name}
         </h3>
 
-        {product.brand && (
-          <p dir="auto" className="text-[11px] text-slate">{product.brand}</p>
-        )}
+        {/* دايماً بتترندر (مش {product.brand && ...}) عشان تحجز سطر ثابت
+            حتى لو المنتج من غير براند — نفس السبب: اتساق الصف مش وجود القيمة. */}
+        <p dir="auto" className="text-[11px] text-slate">{product.brand || " "}</p>
 
         <div className="mt-1 flex items-baseline gap-2">
           <span className="text-base font-extrabold text-ceramic">{formatEGP(price, locale)}</span>
