@@ -5,6 +5,7 @@ import { getProductBySlug, generateStaticProductParams } from "@/lib/queries/pro
 import { Gallery } from "@/components/pdp/gallery";
 import { ProductPanel } from "@/components/pdp/product-panel";
 import { Overview } from "@/components/pdp/overview";
+import { ProductImagery } from "@/components/pdp/product-imagery";
 import { SpecsAccordion } from "@/components/pdp/specs-accordion";
 import { SmartAddons } from "@/components/pdp/smart-addons";
 import { routing } from "@/i18n/routing";
@@ -72,6 +73,9 @@ export default async function ProductPage({ params }: Props) {
             <SpecsAccordion specs={specs} label={t("specifications")} />
           </div>
         )}
+
+        {/* Product photos — the gallery images again, large, for scroll-to-inspect */}
+        <ProductImagery images={images} productName={product.name} label={t("photos")} />
 
         {/* Smart Add-ons */}
         <Suspense fallback={null}>
