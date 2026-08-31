@@ -50,6 +50,10 @@ export function Gallery({ images, productName }: GalleryProps) {
             <button
               key={url}
               onClick={() => setActive(i)}
+              // Preview on hover (desktop) and on keyboard focus; touch still
+              // works because a tap fires onClick. Same handler either way.
+              onMouseEnter={() => setActive(i)}
+              onFocus={() => setActive(i)}
               aria-label={`${productName} image ${i + 1}`}
               className={[
                 "relative h-[72px] w-[72px] flex-shrink-0 overflow-hidden rounded-xl border-2 bg-[#F5F5F7] transition-all duration-150",

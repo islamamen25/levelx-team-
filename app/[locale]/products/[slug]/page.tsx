@@ -1,8 +1,10 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getProductBySlug, generateStaticProductParams } from "@/lib/queries/products";
 import { Gallery } from "@/components/pdp/gallery";
 import { ProductPanel } from "@/components/pdp/product-panel";
+import { Overview } from "@/components/pdp/overview";
 import { SpecsAccordion } from "@/components/pdp/specs-accordion";
 import { SmartAddons } from "@/components/pdp/smart-addons";
 import { routing } from "@/i18n/routing";
@@ -38,9 +40,11 @@ export default async function ProductPage({ params }: Props) {
   const data = await getProductBySlug(slug, locale);
   if (!data) notFound();
 
+  const t = await getTranslations({ locale, namespace: "product" });
   const { product, variants } = data;
   const images = (product.images as string[]) ?? [];
   const specs  = (product.specs as Record<string, string>) ?? {};
+  const description = product.description?.trim() ?? "";
 
   return (
     <div className="bg-white pt-[6.5rem]">
@@ -57,6 +61,18 @@ export default async function ProductPage({ params }: Props) {
           </div>
         </div>
 
+        {/* Overview — the full product description from the catalog */}
+        {description.length > 0 && (
+          <Overview description={description} label={t("overview")} />
+        )}
+
+        {/* Specs accordion */}
+        {Object.keys(specs).length > 0 && (
+          <div className="mt-12 max-w-2xl">
+            <SpecsAccordion specs={specs} label={t("specifications")} />
+          </div>
+        )}
+
         {/* Smart Add-ons */}
         <Suspense fallback={null}>
           <SmartAddons
@@ -65,13 +81,6 @@ export default async function ProductPage({ params }: Props) {
             locale={locale}
           />
         </Suspense>
-
-        {/* Specs accordion */}
-        {Object.keys(specs).length > 0 && (
-          <div className="mt-12 max-w-2xl">
-            <SpecsAccordion specs={specs} locale={locale} />
-          </div>
-        )}
       </div>
     </div>
   );

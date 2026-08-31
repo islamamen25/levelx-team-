@@ -7,14 +7,15 @@ import {
 
 interface SpecsAccordionProps {
   specs: Record<string, string>;
-  locale: string;
+  /** Localised section heading, passed in from the page (which already holds a translator). */
+  label: string;
 }
 
-export function SpecsAccordion({ specs }: SpecsAccordionProps) {
+export function SpecsAccordion({ specs, label }: SpecsAccordionProps) {
   return (
     <Accordion defaultValue={["specs"]}>
       <AccordionItem value="specs">
-        <AccordionTrigger>Specifications</AccordionTrigger>
+        <AccordionTrigger>{label}</AccordionTrigger>
         <AccordionContent>
           <dl className="divide-y divide-[var(--color-iron)]">
             {Object.entries(specs).map(([key, value]) => (
