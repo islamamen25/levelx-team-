@@ -19,10 +19,10 @@ interface ProductImageryProps {
  *
  * The bands break out of the page container to the full viewport width — the
  * `<body>` carries `overflow-x-hidden`, so the `100vw` breakout can't add a
- * horizontal scrollbar. Catalog photos are 1000×1000 on white; `object-cover` in a
- * 4:3 band fills the width with the product, trimming ~1/8 off the top and bottom
- * (whitespace on these centred shots, not the product). Hidden when there is
- * nothing beyond the single image the gallery already shows.
+ * horizontal scrollbar. Catalog photos are 1000×1000 on white, so each sits
+ * `object-contain` on a white band (its own background blends in), centred and
+ * never cropped. Hidden when there is nothing beyond the single image the gallery
+ * already shows.
  */
 export function ProductImagery({ images, productName, label }: ProductImageryProps) {
   const renderable = images.filter(isRenderableImage);
@@ -51,7 +51,7 @@ export function ProductImagery({ images, productName, label }: ProductImageryPro
               src={url}
               alt={`${productName} — ${i + 1}`}
               fill
-              className="object-cover"
+              className="object-contain p-4 sm:p-8"
               sizes="100vw"
               loading="lazy"
             />
