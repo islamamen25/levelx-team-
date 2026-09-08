@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ProductSelectorModal } from "@/components/admin/product-selector-modal";
 import { SectionContentEditor } from "@/components/admin/section-content-editor";
-import type { BrandOverride, CategoryTileOverride, TileShape, FeaturedChipOverride } from "@/lib/store-config";
+import type { BrandOverride, CategoryTileOverride, TileShape, FeaturedChipOverride, HeroSlideOverride } from "@/lib/store-config";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 // PageSection is intentionally re-declared here rather than imported from
@@ -31,15 +31,18 @@ export interface PageSection {
   tile_accent_color?: string;
   tile_text_color?: string;
   tile_text_size?:  "sm" | "md" | "lg";
+  slides?:      HeroSlideOverride[];
 }
 
 // Sections that are pure layout — no product selection needed. "brands" used to be
 // here too, but its carousel pulls from the same unfiltered getProductsFiltered() as
-// every other product section — the picker works for it exactly the same way.
+// every other product section — the picker works for it exactly the same way. "hero"
+// stays here even though it now has an Edit-content button too — "categories" already
+// proves a section can have no product picker but still have editable content.
 const LAYOUT_ONLY = new Set(["hero", "categories", "newsletter", "trust"]);
 
 // Sections with a Builder-editable image/brands/tiles payload beyond visibility/order.
-const HAS_CONTENT_EDITOR = new Set(["featured", "brands", "categories"]);
+const HAS_CONTENT_EDITOR = new Set(["featured", "brands", "categories", "hero"]);
 
 // Built-in section icons / colours
 const SECTION_META: Record<string, { emoji: string; color: string }> = {

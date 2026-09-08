@@ -17,7 +17,7 @@ const SECTION_REGISTRY: Record<
   string,
   ({ locale, section }: { locale: string; section: PageSection }) => React.ReactElement
 > = {
-  hero:        ({ locale }) => <HeroSlider locale={locale} />,
+  hero:        ({ locale, section }) => <HeroSlider locale={locale} slides={section.slides} />,
   categories:  ({ locale, section }) => (
     <CategoryTiles
       locale={locale}
@@ -66,9 +66,9 @@ export default async function HomePage({ params }: Props) {
     <>
       {/* The page had no <h1> at all — headings started at <h2>, which breaks
           screen-reader document outline and weakens the most important page for SEO.
-          It is visually hidden rather than rendered because the hero is a slider: each
-          slide owns an <h2>, and promoting one of three rotating headlines to <h1>
-          would be arbitrary and would change on reorder. */}
+          It is visually hidden rather than rendered above any one section: the hero is
+          images-only now (no headline of its own), and every other section's <h2> is
+          equally weighted — there's no single "main" heading to promote instead. */}
       <h1 className="sr-only">
         {tc("brand")} — {tc("tagline")}
       </h1>

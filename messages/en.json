@@ -29,41 +29,6 @@
     "help": "Need help?",
     "signIn": "Sign in"
   },
-  "hero": {
-    "eyebrow": "Electronics & accessories",
-    "headline": "Premium tech.\nUp to 70% less.",
-    "sub": "Smartphones, laptops, accessories and more. Every order backed by a 1-year warranty and 30 days to change your mind.",
-    "cta": "Shop deals",
-    "ctaSecondary": "How it works",
-    "badge": "Up to −70%",
-    "trust": {
-      "warranty": "1-year warranty",
-      "returns": "30-day returns",
-      "delivery": "Free delivery"
-    },
-    "slides": {
-      "s1": {
-        "badge": "⚡ Flash sale — ends midnight",
-        "headline": "Premium tech.\nUp to 70% less.",
-        "subline": "Smartphones, laptops, accessories and more. Every order backed by a 1-year warranty and 30-day returns.",
-        "ctaPrimary": "Shop flash deals",
-        "ctaSecondary": "How it works"
-      },
-      "s2": {
-        "badge": "New arrivals",
-        "headline": "MacBook.\nReady when\nyou are.",
-        "subline": "Every Apple laptop ships with a 1-year warranty — always.",
-        "ctaPrimary": "Explore MacBooks",
-        "ctaSecondary": "All laptops"
-      },
-      "s3": {
-        "badge": "Best value",
-        "headline": "PlayStation 5.\nReady to play.",
-        "subline": "Sony PS5 Disc Edition fully tested. Ready to play, with free delivery.",
-        "ctaPrimary": "Shop consoles"
-      }
-    }
-  },
   "home": {
     "categoriesTitle": "Shop by category",
     "categoriesSub": "Find the right device for you.",

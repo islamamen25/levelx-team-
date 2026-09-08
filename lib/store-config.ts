@@ -45,6 +45,15 @@ export interface FeaturedChipOverride {
   href?:      string;   // internal path, e.g. "/products?brand=Apple"; defaults to "/products"
 }
 
+/** One row in the Builder's "Slides" editor (`hero` section only). Empty list ⇒ today's
+    3 built-in photos. No label field — the hero is images-only by design, so a slide
+    with no image has nothing to render and is filtered out before it ever reaches the
+    API (see SectionContentEditor's own row filter, and the Zod schema's independent one). */
+export interface HeroSlideOverride {
+  image_url: string;   // required — unlike the other override types, there's no text/icon fallback
+  href?:     string;   // internal path; unset ⇒ slide renders as a plain, non-link image
+}
+
 export interface PageSection {
   id:          string;
   label:       string;
@@ -67,6 +76,7 @@ export interface PageSection {
   tile_text_color?: string;
   tile_text_size?:  "sm" | "md" | "lg";
   chips?:       FeaturedChipOverride[];  // `featured` section: overrides the automatic filter chips
+  slides?:      HeroSlideOverride[];     // `hero` section: overrides the built-in 3 photos
 }
 
 export interface StoreConfig {

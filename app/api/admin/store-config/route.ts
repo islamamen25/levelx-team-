@@ -65,6 +65,15 @@ const SectionSchema = z.object({
     image_url: imageField,
     href:      z.string().regex(/^\/(?!\/)/, "Must be an internal path starting with /").optional(),
   })).optional(),                                // featured: overrides the automatic filter chips
+  // Not imageField here — imageField allows "" (the reset sentinel for a single
+  // persistent field), which inside a list would let a valid-but-image-less slide
+  // object reach the DB if something ever PATCHed this route directly, bypassing the
+  // Builder's own row filter. A hero slide has no fallback content, so an empty image
+  // isn't a "use the default" case, it's just not a slide.
+  slides: z.array(z.object({
+    image_url: z.string().refine(isRenderableImage, "Image host not allowed — use an uploaded image or an images.unsplash.com URL"),
+    href:      z.string().regex(/^\/(?!\/)/, "Must be an internal path starting with /").optional(),
+  })).optional(),                                // hero: overrides the built-in slide images
 });
 
 const UpdateConfigSchema = z.object({

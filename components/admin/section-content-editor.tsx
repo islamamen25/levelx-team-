@@ -5,10 +5,10 @@ import { X, Upload, Loader2, ImageIcon, Plus, Trash2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toSquareWebp } from "@/lib/image-client";
+import { toSquareWebp, toBannerWebp } from "@/lib/image-client";
 import { isRenderableImage } from "@/lib/images";
 import type { PageSection } from "@/components/admin/section-manager";
-import type { BrandOverride, CategoryTileOverride, TileShape, FeaturedChipOverride } from "@/lib/store-config";
+import type { BrandOverride, CategoryTileOverride, TileShape, FeaturedChipOverride, HeroSlideOverride } from "@/lib/store-config";
 
 interface AdminCategory {
   id: string;
@@ -46,11 +46,17 @@ function ImageField({
   value,
   onChange,
   slugHint,
+  uploadMode = "square",
 }: {
   label: string;
   value: string | undefined;
   onChange: (url: string) => void;
   slugHint: string;
+  /** "square" (default): white-background square crop, for logos/tile-photos/chip
+      icons shown at a fixed frame. "banner": keeps the source's own aspect ratio, for
+      the Hero slider's full-bleed images — squaring one of those would bake white
+      letterbox bars into the file that then get cropped into, not trimmed away. */
+  uploadMode?: "square" | "banner";
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError]         = useState("");
@@ -63,7 +69,7 @@ function ImageField({
     setUploading(true);
     setError("");
     try {
-      const webp = await toSquareWebp(file);
+      const webp = uploadMode === "banner" ? await toBannerWebp(file) : await toSquareWebp(file);
       const body = new FormData();
       body.append("slug", slugHint);
       body.append("files", webp);
@@ -174,6 +180,7 @@ export function SectionContentEditor({ open, onClose, section, onConfirm }: Sect
   const [tileTextColor, setTileTextColor] = useState(section.tile_text_color ?? "");
   const [tileTextSize,  setTileTextSize]  = useState<"sm" | "md" | "lg">(section.tile_text_size ?? "md");
   const [chips,     setChips]     = useState<FeaturedChipOverride[]>(section.chips ?? []);
+  const [slides,    setSlides]    = useState<HeroSlideOverride[]>(section.slides ?? []);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
 
   // No reset-on-open effect needed: the parent (section-manager.tsx) only renders this
@@ -213,6 +220,13 @@ export function SectionContentEditor({ open, onClose, section, onConfirm }: Sect
     setChips((prev) => prev.filter((_, idx) => idx !== i));
   }
 
+  function updateSlide(i: number, patch: Partial<HeroSlideOverride>) {
+    setSlides((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  }
+  function removeSlide(i: number) {
+    setSlides((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
   function handleConfirm() {
     const patch: Partial<PageSection> = {};
     if (section.id === "featured" || section.id === "brands") {
@@ -230,6 +244,9 @@ export function SectionContentEditor({ open, onClose, section, onConfirm }: Sect
     }
     if (section.id === "featured") {
       patch.chips = chips.filter((c) => c.label?.trim() || c.image_url || c.href?.trim());
+    }
+    if (section.id === "hero") {
+      patch.slides = slides.filter((s) => s.image_url?.trim());
     }
     onConfirm(patch);
     onClose();
@@ -588,6 +605,60 @@ export function SectionContentEditor({ open, onClose, section, onConfirm }: Sect
                 </div>
               </div>
             </>
+          )}
+
+          {section.id === "hero" && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-[var(--color-ceramic)]">
+                  Slides
+                  <span className="ml-1.5 font-normal text-[var(--color-slate)]">
+                    — empty uses the built-in 3 photos
+                  </span>
+                </label>
+                <Button
+                  type="button" variant="outline" size="sm"
+                  onClick={() => setSlides((prev) => [...prev, { image_url: "", href: "" }])}
+                  className="h-7 px-2.5 text-[11px] border-dashed border-gray-200"
+                >
+                  <Plus className="mr-1 h-3 w-3" /> Add slide
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {slides.map((slide, i) => (
+                  <div key={i} className="space-y-2 rounded-xl border border-gray-100 p-2.5">
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1">
+                        <ImageField
+                          label="Image"
+                          value={slide.image_url}
+                          onChange={(url) => updateSlide(i, { image_url: url })}
+                          slugHint="storefront-hero"
+                          uploadMode="banner"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeSlide(i)}
+                        className="mt-6 rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500"
+                        title="Remove slide"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <Input
+                      value={slide.href ?? ""}
+                      onChange={(e) => updateSlide(i, { href: e.target.value })}
+                      placeholder="/products (optional — leave blank for a non-clickable slide)"
+                      className="h-8 text-xs border-gray-100 font-mono"
+                    />
+                  </div>
+                ))}
+                {slides.length === 0 && (
+                  <p className="text-[11px] text-gray-300">No custom slides — showing the built-in 3 photos.</p>
+                )}
+              </div>
+            </div>
           )}
         </div>
 
