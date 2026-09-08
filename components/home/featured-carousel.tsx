@@ -33,37 +33,13 @@ export function FeaturedCarousel({ deals, locale, title }: FeaturedCarouselProps
 
   return (
     <div className="relative">
-      <div className="mb-6 flex items-center justify-between">
-        <h2
-          id="featured-title"
-          className="text-ceramic"
-          style={{ fontSize: "clamp(1.4rem, 2.8vw, 2rem)", fontWeight: 800, letterSpacing: "-0.015em" }}
-        >
-          {title}
-        </h2>
-        <div className="hidden items-center gap-2 md:flex">
-          <button
-            type="button"
-            aria-label="Scroll left"
-            onClick={() => scroll("left")}
-            disabled={!canScrollLeft}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-iron)] bg-white text-ceramic transition-colors hover:border-ceramic disabled:opacity-30"
-          >
-            {/* الأسهم مرآة في RTL: flex يعكس ترتيب الأزرار تلقائياً تبعاً لـdir،
-                فالشيفرون لازم يُقلَب بصرياً ليطابق اتجاه الحركة الجديد. */}
-            <ChevronLeft className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            aria-label="Scroll right"
-            onClick={() => scroll("right")}
-            disabled={!canScrollRight}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-ceramic bg-ceramic text-white transition-colors hover:bg-ceramic/90 disabled:opacity-30"
-          >
-            <ChevronRight className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} strokeWidth={2} />
-          </button>
-        </div>
-      </div>
+      <h2
+        id="featured-title"
+        className="mb-6 text-ceramic"
+        style={{ fontSize: "clamp(1.4rem, 2.8vw, 2rem)", fontWeight: 800, letterSpacing: "-0.015em" }}
+      >
+        {title}
+      </h2>
 
       <div
         ref={scrollRef}
@@ -77,6 +53,31 @@ export function FeaturedCarousel({ deals, locale, title }: FeaturedCarouselProps
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Arrows sit below the row, not beside the title — matches Top Brands, and reads
+          as an actual control instead of getting lost next to a small heading. */}
+      <div className="mt-6 hidden items-center justify-end gap-2 md:flex">
+        <button
+          type="button"
+          aria-label="Scroll left"
+          onClick={() => scroll("left")}
+          disabled={!canScrollLeft}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-iron)] bg-white text-ceramic transition-colors hover:border-ceramic disabled:opacity-30"
+        >
+          {/* الأسهم مرآة في RTL: flex يعكس ترتيب الأزرار تلقائياً تبعاً لـdir،
+              فالشيفرون لازم يُقلَب بصرياً ليطابق اتجاه الحركة الجديد. */}
+          <ChevronLeft className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} strokeWidth={2} />
+        </button>
+        <button
+          type="button"
+          aria-label="Scroll right"
+          onClick={() => scroll("right")}
+          disabled={!canScrollRight}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-ceramic bg-ceramic text-white transition-colors hover:bg-ceramic/90 disabled:opacity-30"
+        >
+          <ChevronRight className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} strokeWidth={2} />
+        </button>
       </div>
     </div>
   );

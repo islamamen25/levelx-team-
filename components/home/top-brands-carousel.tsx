@@ -148,6 +148,9 @@ export function TopBrandsCarousel({ products, locale, imageUrl, brands }: TopBra
         <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
           {/* Left: lifestyle image */}
           <div className="relative overflow-hidden rounded-2xl min-h-[200px] md:col-span-4 md:min-h-[460px]">
+            {/* No gradient/scrim here — it used to protect badges+a caption that were
+                removed per earlier feedback, and kept purely darkened the admin's own
+                uploaded photo with no legibility job left to do. Image only, as asked. */}
             <Image
               src={heroImage}
               alt=""
@@ -155,11 +158,14 @@ export function TopBrandsCarousel({ products, locale, imageUrl, brands }: TopBra
               sizes="(max-width: 768px) 100vw, 320px"
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/40" />
           </div>
 
-          {/* Right column */}
-          <div className="flex flex-col gap-4 md:col-span-8">
+          {/* Right column — min-w-0 overrides the grid item's default min-width:auto;
+              see featured.tsx's right column for why this matters (a `width: max-content`
+              row inside otherwise forces the grid track, and the page, to grow instead of
+              the row scrolling in its own box). Same latent risk here, just not triggered
+              yet at typical product counts — fixed defensively before it is. */}
+          <div className="flex min-w-0 flex-col gap-4 md:col-span-8">
             {/* Brand logo chips */}
             <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex gap-3" style={{ width: "max-content" }}>
@@ -196,7 +202,7 @@ export function TopBrandsCarousel({ products, locale, imageUrl, brands }: TopBra
                   ))}
                 </div>
               </div>
-              <div className="mt-3 hidden items-center justify-end gap-2 md:flex">
+              <div className="mt-6 hidden items-center justify-end gap-2 md:flex">
                 <button
                   type="button"
                   aria-label="Scroll left"

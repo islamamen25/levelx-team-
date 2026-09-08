@@ -101,6 +101,9 @@ export async function Featured({ locale, imageUrl, productIds, chips: chipsOverr
 
           {/* Left: lifestyle image */}
           <div className="relative hidden overflow-hidden rounded-2xl md:block" style={{ minHeight: "420px" }}>
+            {/* No gradient/scrim here — it used to protect a caption+badges that were
+                removed per earlier feedback, and kept purely darkened the admin's own
+                uploaded photo with no legibility job left to do. Image only, as asked. */}
             <Image
               src={heroImage}
               alt=""
@@ -108,11 +111,15 @@ export async function Featured({ locale, imageUrl, productIds, chips: chipsOverr
               sizes="(max-width: 1024px) 300px, 380px"
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
           </div>
 
-          {/* Right column */}
-          <div className="flex flex-col gap-4">
+          {/* Right column — min-w-0 overrides the grid item's default min-width:auto.
+              Without it this column refuses to shrink below the product row's full
+              content width (the row inside is `width: max-content` on purpose, so it
+              never wraps) and the grid track — and the whole page — grows to fit it
+              instead of the row scrolling within its own box. Same fix needed in
+              top-brands-carousel.tsx's right column for the same reason. */}
+          <div className="flex min-w-0 flex-col gap-4">
             {/* Filter chips */}
             <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex gap-2" style={{ width: "max-content" }}>
