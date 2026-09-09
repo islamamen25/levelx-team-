@@ -173,6 +173,23 @@
   to   { width: 100%; }
 }
 
+/* ── Hero slider art-direction frame ──
+   The active slide's aspect ratio (per hero-slider.tsx, from HeroSlideOverride's
+   desktop_aspect_ratio/mobile_aspect_ratio) is set on this class via the
+   --hero-aspect-mobile/--hero-aspect-desktop custom properties. Mobile is the default;
+   desktop only takes over once the viewport is BOTH wide (768px+) AND landscape-ish
+   (13:10+) — a portrait tablet or an unfolded-but-narrow foldable stays on the mobile
+   crop past 768px width, since a 21:9 banner squeezed into a tall narrow column looks
+   worse than the square/portrait crop does. */
+.hero-slide-frame {
+  aspect-ratio: var(--hero-aspect-mobile, 1 / 1);
+}
+@media (min-width: 768px) and (min-aspect-ratio: 13/10) {
+  .hero-slide-frame {
+    aspect-ratio: var(--hero-aspect-desktop, 21 / 9);
+  }
+}
+
 @layer utilities {
   /* ── Container with horizontal padding ── */
   .container-px {

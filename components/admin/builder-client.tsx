@@ -1,16 +1,19 @@
 "use client";
 
 import { useState, useCallback, useTransition } from "react";
-import { Loader2, Save, CheckCircle2, AlertCircle, Palette, LayoutGrid } from "lucide-react";
+import { Loader2, Save, CheckCircle2, AlertCircle, Palette, LayoutGrid, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ThemeEditor, type ThemeConfig } from "@/components/admin/theme-editor";
 import { SectionManager, type PageSection } from "@/components/admin/section-manager";
+import { DeliveryEditor } from "@/components/admin/delivery-editor";
+import type { DeliveryConfig } from "@/lib/delivery";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface StoreConfig {
-  theme:  ThemeConfig;
-  layout: PageSection[];
+  theme:    ThemeConfig;
+  layout:   PageSection[];
+  delivery: DeliveryConfig;
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -34,13 +37,19 @@ export function BuilderClient({ initial }: { initial: StoreConfig }) {
     setStatus("idle");
   }, []);
 
+  const updateDelivery = useCallback((delivery: DeliveryConfig) => {
+    setConfig((c) => ({ ...c, delivery }));
+    setIsDirty(true);
+    setStatus("idle");
+  }, []);
+
   const save = async () => {
     setStatus("saving");
     try {
       const res = await fetch("/api/admin/store-config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: config.theme, layout: config.layout }),
+        body: JSON.stringify({ theme: config.theme, layout: config.layout, delivery: config.delivery }),
       });
       if (!res.ok) throw new Error(await res.text());
       setStatus("saved");
@@ -118,6 +127,13 @@ export function BuilderClient({ initial }: { initial: StoreConfig }) {
               {config.layout.filter((s) => s.visible).length}
             </span>
           </TabsTrigger>
+          <TabsTrigger value="delivery"
+            className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold
+              data-active:bg-white data-active:shadow-sm data-active:text-[var(--color-ceramic)]
+              text-[var(--color-slate)]">
+            <Truck className="h-4 w-4" />
+            Delivery
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Theme Settings Tab ── */}
@@ -143,6 +159,19 @@ export function BuilderClient({ initial }: { initial: StoreConfig }) {
               </p>
             </div>
             <SectionManager value={config.layout} onChange={updateLayout} />
+          </div>
+        </TabsContent>
+
+        {/* ── Delivery Tab ── */}
+        <TabsContent value="delivery">
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="mb-6">
+              <h2 className="text-base font-bold text-[var(--color-ceramic)]">Delivery Fees</h2>
+              <p className="text-xs text-[var(--color-slate)] mt-0.5">
+                Set a store-wide rule and optional per-governorate prices. Applied at checkout instantly after saving.
+              </p>
+            </div>
+            <DeliveryEditor value={config.delivery} onChange={updateDelivery} />
           </div>
         </TabsContent>
       </Tabs>

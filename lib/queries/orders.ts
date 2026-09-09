@@ -35,8 +35,8 @@ export async function getOrdersAdmin(): Promise<OrderRow[]> {
   const { data, error } = await supabase
     .from("orders")
     .select(
-      `id, order_number, customer_name, email, phone, address, city, postal_code,
-       notes, payment_method, status, subtotal, vat, total, created_at, updated_at,
+      `id, order_number, customer_name, email, phone, address, city, governorate, postal_code,
+       notes, payment_method, status, subtotal, vat, shipping, total, created_at, updated_at,
        order_items ( id, product_name, sku_code, price, qty, product_id )`
     )
     .order("created_at", { ascending: false });

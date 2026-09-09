@@ -8,6 +8,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatEGP, formatDateTime } from "@/lib/format";
+import { governorateLabel } from "@/lib/egypt-governorates";
 import type { OrderRow, OrderStatus } from "@/lib/queries/orders";
 
 const STATUSES: OrderStatus[] = ["pending", "confirmed", "shipped", "delivered", "cancelled"];
@@ -265,9 +266,21 @@ export function OrderTable({ initialOrders, locale }: OrderTableProps) {
                               <span>{formatEGP(Number(o.subtotal), locale)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-[var(--color-slate)]">{isAr ? "ضريبة القيمة المضافة" : "VAT"}</span>
-                              <span>{formatEGP(Number(o.vat), locale)}</span>
+                              <span className="text-[var(--color-slate)]">{isAr ? "التوصيل" : "Shipping"}</span>
+                              <span>
+                                {Number(o.shipping) > 0
+                                  ? formatEGP(Number(o.shipping), locale)
+                                  : (isAr ? "مجاني" : "Free")}
+                              </span>
                             </div>
+                            {/* Older orders carry a real VAT figure; new ones are 0 (VAT is
+                                now in the product price). Hide the line when there is nothing to show. */}
+                            {Number(o.vat) > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-[var(--color-slate)]">{isAr ? "ضريبة القيمة المضافة" : "VAT"}</span>
+                                <span>{formatEGP(Number(o.vat), locale)}</span>
+                              </div>
+                            )}
                             <div className="flex justify-between font-extrabold">
                               <span>{isAr ? "الإجمالي" : "Total"}</span>
                               <span>{formatEGP(Number(o.total), locale)}</span>
@@ -283,7 +296,9 @@ export function OrderTable({ initialOrders, locale }: OrderTableProps) {
                             </p>
                             <p dir="auto" className="text-[var(--color-ceramic)]">{o.address}</p>
                             <p dir="auto" className="text-[var(--color-slate)]">
-                              {o.city}{o.postal_code ? ` · ${o.postal_code}` : ""}
+                              {[governorateLabel(o.governorate, locale), o.city, o.postal_code]
+                                .filter(Boolean)
+                                .join(" · ")}
                             </p>
                           </div>
 

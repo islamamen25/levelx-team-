@@ -6,18 +6,15 @@ import { Link } from "@/i18n/navigation";
 import { Banknote, ShieldCheck, PackageCheck, CheckCircle2, ShoppingBag, Minus, Plus, Trash2 } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 import { formatEGP } from "@/lib/format";
+import { computeShipping, type DeliveryConfig } from "@/lib/delivery";
+import { EGYPT_GOVERNORATES } from "@/lib/egypt-governorates";
 
 interface CheckoutFormProps {
   locale: string;
+  /** Delivery-fee rules from store_configuration — the *display* side. The
+   *  authoritative figure is recomputed in create_cod_order() from the same row. */
+  delivery: DeliveryConfig;
 }
-
-/**
- * Egypt standard VAT. This is the *display* rate — the authoritative figure is
- * recomputed server-side in create_cod_order() (migration 0003), so the two must
- * be kept in step. Was hardcoded 0.2 (a UK-template leftover, alongside the £
- * symbols removed earlier).
- */
-const VAT_RATE = 0.14;
 
 /** Mirrors the per-line ceiling enforced inside create_cod_order() (migration 0005). */
 const MAX_QTY = 99;
@@ -28,11 +25,12 @@ const inputClass =
 
 const labelClass = "block text-xs font-semibold uppercase tracking-wider text-slate mb-1.5";
 
-export function CheckoutForm({ locale }: CheckoutFormProps) {
+export function CheckoutForm({ locale, delivery }: CheckoutFormProps) {
   const t = useTranslations("checkout");
   const [placedNumber, setPlacedNumber] = useState<string | null>(null);
   const [submitting,   setSubmitting]   = useState(false);
   const [error,        setError]        = useState<string | null>(null);
+  const [governorate,  setGovernorate]  = useState("");
 
   const items      = useCartStore((s) => s.items);
   const updateQty  = useCartStore((s) => s.updateQty);
@@ -40,8 +38,10 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
   const clearCart  = useCartStore((s) => s.clearCart);
 
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-  const vat      = Math.round(subtotal * VAT_RATE);
-  const total    = subtotal + vat;
+  // VAT is no longer a line item — it is baked into product prices. The delivery
+  // fee is computed from the store's rules; the server recomputes it independently.
+  const shipping = computeShipping(subtotal, governorate, delivery);
+  const total    = subtotal + shipping;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -55,8 +55,8 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
       phone:         String(fd.get("phone") ?? "").trim(),
       address:       String(fd.get("address") ?? "").trim(),
       city:          String(fd.get("city") ?? "").trim(),
+      governorate,
       email:         String(fd.get("email") ?? "").trim(),
-      postal_code:   String(fd.get("zip") ?? "").trim(),
       notes:         String(fd.get("notes") ?? "").trim(),
       // Prices deliberately omitted — the server recomputes them from the DB.
       items: items.map((i) => ({ variant_id: i.variantId, qty: i.qty })),
@@ -218,11 +218,11 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate">{t("shippingFee")}</span>
-                <span className="font-semibold text-[var(--color-mint)]">{t("shippingFree")}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate">{t("tax")}</span>
-                <span className="font-semibold text-ceramic">{formatEGP(vat, locale)}</span>
+                {shipping > 0 ? (
+                  <span className="font-semibold text-ceramic">{formatEGP(shipping, locale)}</span>
+                ) : (
+                  <span className="font-semibold text-[var(--color-mint)]">{t("shippingFree")}</span>
+                )}
               </div>
               <div className="flex justify-between border-t border-[var(--color-iron)] pt-3 text-base font-extrabold text-ceramic">
                 <span>{t("total")}</span>
@@ -304,13 +304,28 @@ export function CheckoutForm({ locale }: CheckoutFormProps) {
                   <input id="address" name="address" required type="text" autoComplete="street-address" className={inputClass} />
                 </div>
                 <div>
-                  <label htmlFor="city" className={labelClass}>{t("city")}</label>
-                  <input id="city" name="city" required type="text" autoComplete="address-level2" className={inputClass} />
+                  {/* Governorate drives the delivery fee — see computeShipping() and
+                      the store's Delivery settings. Controlled so the summary updates live. */}
+                  <label htmlFor="governorate" className={labelClass}>{t("governorate")}</label>
+                  <select
+                    id="governorate"
+                    name="governorate"
+                    required
+                    value={governorate}
+                    onChange={(e) => setGovernorate(e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="" disabled>{t("governoratePlaceholder")}</option>
+                    {EGYPT_GOVERNORATES.map((g) => (
+                      <option key={g.value} value={g.value}>
+                        {locale === "ar" ? g.ar : g.en}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
-                  {/* Postcodes are rarely used in Egyptian addressing — optional. */}
-                  <label htmlFor="zip" className={labelClass}>{t("zip")}</label>
-                  <input id="zip" name="zip" type="text" autoComplete="postal-code" className={inputClass} />
+                  <label htmlFor="city" className={labelClass}>{t("city")}</label>
+                  <input id="city" name="city" required type="text" autoComplete="address-level2" className={inputClass} />
                 </div>
                 <div className="sm:col-span-2">
                   <label htmlFor="notes" className={labelClass}>{t("notes")}</label>

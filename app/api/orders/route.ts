@@ -19,6 +19,9 @@ const OrderSchema = z.object({
   phone:         z.string().trim().min(6).max(30),
   address:       z.string().trim().min(5).max(400),
   city:          z.string().trim().min(2).max(80),
+  // One of the 27 Egyptian governorates — drives the delivery fee, which
+  // create_cod_order() recomputes from store_configuration.delivery.
+  governorate:   z.string().trim().min(2).max(60),
   email:         z.union([z.string().trim().email().max(200), z.literal("")]).optional(),
   postal_code:   z.string().trim().max(20).optional(),
   notes:         z.string().trim().max(1000).optional(),
@@ -56,6 +59,7 @@ export async function POST(req: NextRequest) {
     p_email:         o.email || undefined,
     p_postal_code:   o.postal_code || undefined,
     p_notes:         o.notes || undefined,
+    p_governorate:   o.governorate,
     p_items:         o.items,
   });
 

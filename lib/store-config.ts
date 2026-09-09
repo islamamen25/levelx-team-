@@ -1,4 +1,5 @@
 import { cacheLife, cacheTag } from "next/cache";
+import { type DeliveryConfig, DEFAULT_DELIVERY, normaliseDelivery } from "./delivery";
 
 /**
  * Server-side utility — fetches store_configuration from Supabase.
@@ -45,13 +46,28 @@ export interface FeaturedChipOverride {
   href?:      string;   // internal path, e.g. "/products?brand=Apple"; defaults to "/products"
 }
 
+/** Preset aspect ratios for a hero slide, per breakpoint — a name, not a raw ratio, so the
+    Builder can offer a fixed set of buttons instead of a free-text CSS value. Resolved to
+    an actual `aspect-ratio` string in hero-slider.tsx. */
+export type HeroDesktopAspectRatio = "wide-banner" | "standard-cinema" | "compact-strip";
+export type HeroMobileAspectRatio  = "square" | "portrait" | "compact";
+
 /** One row in the Builder's "Slides" editor (`hero` section only). Empty list ⇒ today's
     3 built-in photos. No label field — the hero is images-only by design, so a slide
     with no image has nothing to render and is filtered out before it ever reaches the
-    API (see SectionContentEditor's own row filter, and the Zod schema's independent one). */
+    API (see SectionContentEditor's own row filter, and the Zod schema's independent one).
+
+    Desktop and mobile are genuinely different images (art direction via <picture>/<source>,
+    not just a CSS crop of one file) — a wide banner shot rarely reads well cropped down to
+    a phone-width square. `mobile_image_url` is optional and falls back to the desktop image
+    so an admin can start with one photo and add a mobile-specific one later, not be forced
+    to supply two immediately. */
 export interface HeroSlideOverride {
-  image_url: string;   // required — unlike the other override types, there's no text/icon fallback
-  href?:     string;   // internal path; unset ⇒ slide renders as a plain, non-link image
+  desktop_image_url:     string;                      // required — also mobile's fallback
+  mobile_image_url?:     string;                       // unset ⇒ uses desktop_image_url
+  desktop_aspect_ratio?: HeroDesktopAspectRatio;        // unset ⇒ "wide-banner" (21/9)
+  mobile_aspect_ratio?:  HeroMobileAspectRatio;         // unset ⇒ "square" (1/1)
+  href?:                 string;   // internal path; unset ⇒ slide renders as a plain, non-link image
 }
 
 export interface PageSection {
@@ -80,8 +96,9 @@ export interface PageSection {
 }
 
 export interface StoreConfig {
-  theme:  ThemeConfig;
-  layout: PageSection[];
+  theme:    ThemeConfig;
+  layout:   PageSection[];
+  delivery: DeliveryConfig;
 }
 
 export const DEFAULT_CONFIG: StoreConfig = {
@@ -101,6 +118,7 @@ export const DEFAULT_CONFIG: StoreConfig = {
     { id: "newsletter",  label: "Newsletter",        visible: true,  order: 5 },
     { id: "trust",       label: "Trust Banner",      visible: true,  order: 6 },
   ],
+  delivery: DEFAULT_DELIVERY,
 };
 
 export async function getStoreConfig(): Promise<StoreConfig> {
@@ -109,8 +127,10 @@ export async function getStoreConfig(): Promise<StoreConfig> {
   cacheTag("store-config");
 
   try {
+    // select=* rather than a column list so a not-yet-migrated `delivery` column
+    // can't 400 the whole request and take the storefront's theme/layout with it.
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/store_configuration?id=eq.1&select=theme,layout`,
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/store_configuration?id=eq.1&select=*`,
       {
         headers: {
           apikey:        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -120,12 +140,13 @@ export async function getStoreConfig(): Promise<StoreConfig> {
     );
 
     if (!res.ok) return DEFAULT_CONFIG;
-    const rows: { theme: ThemeConfig; layout: PageSection[] }[] = await res.json();
+    const rows: { theme?: ThemeConfig; layout?: PageSection[]; delivery?: DeliveryConfig | null }[] = await res.json();
     if (!rows?.[0]) return DEFAULT_CONFIG;
 
     return {
-      theme:  rows[0].theme  ?? DEFAULT_CONFIG.theme,
-      layout: rows[0].layout ?? DEFAULT_CONFIG.layout,
+      theme:    rows[0].theme    ?? DEFAULT_CONFIG.theme,
+      layout:   rows[0].layout   ?? DEFAULT_CONFIG.layout,
+      delivery: normaliseDelivery(rows[0].delivery),
     };
   } catch {
     return DEFAULT_CONFIG;

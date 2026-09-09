@@ -71,14 +71,35 @@ const SectionSchema = z.object({
   // Builder's own row filter. A hero slide has no fallback content, so an empty image
   // isn't a "use the default" case, it's just not a slide.
   slides: z.array(z.object({
-    image_url: z.string().refine(isRenderableImage, "Image host not allowed — use an uploaded image or an images.unsplash.com URL"),
-    href:      z.string().regex(/^\/(?!\/)/, "Must be an internal path starting with /").optional(),
+    desktop_image_url: z.string().refine(isRenderableImage, "Image host not allowed — use an uploaded image or an images.unsplash.com URL"),
+    // mobile_image_url DOES use imageField's "" shape — unlike desktop_image_url, "" here
+    // is a legitimate "no mobile-specific image, fall back to desktop" choice, not a
+    // slide with nothing to render.
+    mobile_image_url:     imageField,
+    desktop_aspect_ratio: z.enum(["wide-banner", "standard-cinema", "compact-strip"]).optional(),
+    mobile_aspect_ratio:  z.enum(["square", "portrait", "compact"]).optional(),
+    href:                 z.string().regex(/^\/(?!\/)/, "Must be an internal path starting with /").optional(),
   })).optional(),                                // hero: overrides the built-in slide images
 });
 
+// Delivery-fee rules. `fee` is the base charge; `free_over` the subtotal at which
+// delivery becomes free (threshold mode); `governorates` overrides `fee` for named
+// governorates. create_cod_order() recomputes the authoritative figure from the
+// same shape — see migration 0007.
+const DeliverySchema = z.object({
+  mode:      z.enum(["free", "threshold", "flat"]),
+  fee:       z.number().nonnegative().max(100000),
+  free_over: z.number().nonnegative().max(10000000),
+  governorates: z
+    .array(z.object({ name: z.string().min(1).max(60), fee: z.number().nonnegative().max(100000) }))
+    .max(30)
+    .default([]),
+});
+
 const UpdateConfigSchema = z.object({
-  theme:  ThemeSchema.optional(),
-  layout: z.array(SectionSchema).optional(),
+  theme:    ThemeSchema.optional(),
+  layout:   z.array(SectionSchema).optional(),
+  delivery: DeliverySchema.optional(),
 });
 
 function apiError(msg: string, status = 400, details?: unknown) {

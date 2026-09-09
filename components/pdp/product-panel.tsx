@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
-import { Check, ShieldCheck, RotateCcw, Truck, Minus, Plus, ShoppingBag, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, RotateCcw, Truck, Minus, Plus, ShoppingBag, CheckCircle2 } from "lucide-react";
 import type { DbProduct, DbVariant, ProductCondition } from "@/lib/supabase";
 import { useCartStore } from "@/lib/cart-store";
 import { formatEGP } from "@/lib/format";
@@ -122,42 +122,40 @@ export function ProductPanel({ product, variants, locale }: ProductPanelProps) {
         </h1>
       </div>
 
-      {/* Condition Selector */}
-      <div>
-        <p className="mb-2.5 text-sm font-bold text-ceramic">{t("condition")}</p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {conditions.map((cond) => {
-            const isActive = cond === activeCondition;
-            const cp = conditionPrice(cond);
-            return (
-              <button
-                key={cond}
-                onClick={() => setActiveCondition(cond)}
-                className={[
-                  "relative flex flex-col items-center rounded-xl border-2 px-3 py-3 text-center transition-all duration-150",
-                  isActive
-                    ? "border-[var(--color-mint)] bg-[var(--color-mint-soft)]"
-                    : "border-[var(--color-iron)] bg-white hover:border-[var(--color-mint)]/50",
-                ].join(" ")}
-              >
-                {isActive && (
-                  <Check
-                    className="absolute end-2 top-2 h-3.5 w-3.5 text-[var(--color-mint)]"
-                    strokeWidth={2.5}
-                  />
-                )}
-                <span className="text-xs font-bold text-ceramic">
-                  {tCond(cond.toLowerCase() as "fair" | "good" | "excellent" | "premium")}
-                </span>
-                <span className="mt-0.5 text-[10px] font-semibold text-slate">
-                  {formatEGP(cp, locale)}
-                </span>
-              </button>
-            );
-          })}
+      {/* Condition Selector — only when the product actually offers a choice.
+          A single-condition product (currently the whole catalog) showed one
+          un-clickable card, so hide the section entirely in that case. */}
+      {conditions.length > 1 && (
+        <div>
+          <p className="mb-2.5 text-sm font-bold text-ceramic">{t("condition")}</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {conditions.map((cond) => {
+              const isActive = cond === activeCondition;
+              const cp = conditionPrice(cond);
+              return (
+                <button
+                  key={cond}
+                  onClick={() => setActiveCondition(cond)}
+                  className={[
+                    "relative flex flex-col items-center rounded-xl border-2 px-3 py-3 text-center transition-all duration-150",
+                    isActive
+                      ? "border-[var(--color-mint)] bg-[var(--color-mint-soft)]"
+                      : "border-[var(--color-iron)] bg-white hover:border-[var(--color-mint)]/50",
+                  ].join(" ")}
+                >
+                  <span className="text-xs font-bold text-ceramic">
+                    {tCond(cond.toLowerCase() as "fair" | "good" | "excellent" | "premium")}
+                  </span>
+                  <span className="mt-0.5 text-[10px] font-semibold text-slate">
+                    {formatEGP(cp, locale)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-slate">{t("conditionHelp")}</p>
         </div>
-        <p className="mt-2 text-xs text-slate">{t("conditionHelp")}</p>
-      </div>
+      )}
 
       {/* Storage selector */}
       {storageOptions.length > 1 && (

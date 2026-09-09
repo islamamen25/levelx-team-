@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { toSquareWebp, toBannerWebp } from "@/lib/image-client";
 import { isRenderableImage } from "@/lib/images";
 import type { PageSection } from "@/components/admin/section-manager";
-import type { BrandOverride, CategoryTileOverride, TileShape, FeaturedChipOverride, HeroSlideOverride } from "@/lib/store-config";
+import type {
+  BrandOverride, CategoryTileOverride, TileShape, FeaturedChipOverride,
+  HeroSlideOverride, HeroDesktopAspectRatio, HeroMobileAspectRatio,
+} from "@/lib/store-config";
 
 interface AdminCategory {
   id: string;
@@ -30,6 +33,54 @@ const SHAPE_OPTIONS: { value: TileShape; label: string; radius: string }[] = [
   { value: "rounded", label: "Rounded", radius: "rounded-lg" },
   { value: "circle",  label: "Circle",  radius: "rounded-full" },
 ];
+
+const DESKTOP_RATIO_OPTIONS: { value: HeroDesktopAspectRatio; label: string; hint: string }[] = [
+  { value: "wide-banner",     label: "Wide",    hint: "21:9" },
+  { value: "standard-cinema", label: "Cinema",  hint: "16:9" },
+  { value: "compact-strip",   label: "Compact", hint: "3:1" },
+];
+const MOBILE_RATIO_OPTIONS: { value: HeroMobileAspectRatio; label: string; hint: string }[] = [
+  { value: "square",   label: "Square",   hint: "1:1" },
+  { value: "portrait", label: "Portrait", hint: "4:5" },
+  { value: "compact",  label: "Compact",  hint: "3:2" },
+];
+
+/** Compact segmented control shared by the two hero aspect-ratio pickers below —
+    small enough to fit two of them side by side inside an already-busy slide row. */
+function RatioPicker<T extends string>({
+  options,
+  value,
+  defaultValue,
+  onChange,
+}: {
+  options: { value: T; label: string; hint: string }[];
+  value: T | undefined;
+  defaultValue: T;
+  onChange: (v: T) => void;
+}) {
+  const active = value ?? defaultValue;
+  return (
+    <div className="flex gap-1">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={[
+            "flex-1 rounded-lg border px-1.5 py-1 text-center transition-all",
+            active === opt.value
+              ? "border-[var(--color-mint)] bg-[var(--color-mint-soft)] text-[var(--color-mint)]"
+              : "border-gray-200 text-[var(--color-slate)] hover:border-gray-300",
+          ].join(" ")}
+          title={opt.hint}
+        >
+          <span className="block text-[10px] font-semibold leading-tight">{opt.label}</span>
+          <span className="block text-[9px] leading-tight opacity-70">{opt.hint}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /**
  * Every admin-supplied image in this dialog goes through the exact same guard the
@@ -246,7 +297,7 @@ export function SectionContentEditor({ open, onClose, section, onConfirm }: Sect
       patch.chips = chips.filter((c) => c.label?.trim() || c.image_url || c.href?.trim());
     }
     if (section.id === "hero") {
-      patch.slides = slides.filter((s) => s.image_url?.trim());
+      patch.slides = slides.filter((s) => s.desktop_image_url?.trim());
     }
     onConfirm(patch);
     onClose();
@@ -618,7 +669,10 @@ export function SectionContentEditor({ open, onClose, section, onConfirm }: Sect
                 </label>
                 <Button
                   type="button" variant="outline" size="sm"
-                  onClick={() => setSlides((prev) => [...prev, { image_url: "", href: "" }])}
+                  onClick={() => setSlides((prev) => [
+                    ...prev,
+                    { desktop_image_url: "", mobile_image_url: "", href: "" },
+                  ])}
                   className="h-7 px-2.5 text-[11px] border-dashed border-gray-200"
                 >
                   <Plus className="mr-1 h-3 w-3" /> Add slide
@@ -626,21 +680,44 @@ export function SectionContentEditor({ open, onClose, section, onConfirm }: Sect
               </div>
               <div className="space-y-3">
                 {slides.map((slide, i) => (
-                  <div key={i} className="space-y-2 rounded-xl border border-gray-100 p-2.5">
+                  <div key={i} className="space-y-3 rounded-xl border border-gray-100 p-2.5">
                     <div className="flex items-start gap-2">
-                      <div className="flex-1">
-                        <ImageField
-                          label="Image"
-                          value={slide.image_url}
-                          onChange={(url) => updateSlide(i, { image_url: url })}
-                          slugHint="storefront-hero"
-                          uploadMode="banner"
-                        />
+                      <div className="flex-1 space-y-2.5">
+                        <div className="space-y-1.5">
+                          <ImageField
+                            label="Desktop image"
+                            value={slide.desktop_image_url}
+                            onChange={(url) => updateSlide(i, { desktop_image_url: url })}
+                            slugHint="storefront-hero"
+                            uploadMode="banner"
+                          />
+                          <RatioPicker
+                            options={DESKTOP_RATIO_OPTIONS}
+                            value={slide.desktop_aspect_ratio}
+                            defaultValue="wide-banner"
+                            onChange={(v) => updateSlide(i, { desktop_aspect_ratio: v })}
+                          />
+                        </div>
+                        <div className="space-y-1.5 border-t border-dashed border-gray-100 pt-2.5">
+                          <ImageField
+                            label="Mobile image (optional — falls back to desktop)"
+                            value={slide.mobile_image_url}
+                            onChange={(url) => updateSlide(i, { mobile_image_url: url })}
+                            slugHint="storefront-hero"
+                            uploadMode="banner"
+                          />
+                          <RatioPicker
+                            options={MOBILE_RATIO_OPTIONS}
+                            value={slide.mobile_aspect_ratio}
+                            defaultValue="square"
+                            onChange={(v) => updateSlide(i, { mobile_aspect_ratio: v })}
+                          />
+                        </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => removeSlide(i)}
-                        className="mt-6 rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500"
+                        className="rounded-lg p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500"
                         title="Remove slide"
                       >
                         <Trash2 className="h-3.5 w-3.5" />

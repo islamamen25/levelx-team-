@@ -189,12 +189,14 @@ export type Database = {
           created_at: string
           customer_name: string
           email: string | null
+          governorate: string | null
           id: string
           notes: string | null
           order_number: string
           payment_method: Database["public"]["Enums"]["payment_method"]
           phone: string
           postal_code: string | null
+          shipping: number
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           total: number
@@ -207,12 +209,14 @@ export type Database = {
           created_at?: string
           customer_name: string
           email?: string | null
+          governorate?: string | null
           id?: string
           notes?: string | null
           order_number: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
           phone: string
           postal_code?: string | null
+          shipping?: number
           status?: Database["public"]["Enums"]["order_status"]
           subtotal: number
           total: number
@@ -225,12 +229,14 @@ export type Database = {
           created_at?: string
           customer_name?: string
           email?: string | null
+          governorate?: string | null
           id?: string
           notes?: string | null
           order_number?: string
           payment_method?: Database["public"]["Enums"]["payment_method"]
           phone?: string
           postal_code?: string | null
+          shipping?: number
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           total?: number
@@ -497,18 +503,21 @@ export type Database = {
       }
       store_configuration: {
         Row: {
+          delivery: Json
           id: number
           layout: Json
           theme: Json
           updated_at: string
         }
         Insert: {
+          delivery?: Json
           id?: number
           layout?: Json
           theme?: Json
           updated_at?: string
         }
         Update: {
+          delivery?: Json
           id?: number
           layout?: Json
           theme?: Json
@@ -581,6 +590,7 @@ export type Database = {
           p_city: string
           p_customer_name: string
           p_email?: string
+          p_governorate?: string
           p_items?: Json
           p_notes?: string
           p_phone: string
