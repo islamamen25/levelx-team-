@@ -7,7 +7,7 @@ import { requireAdmin } from "@/lib/supabase/require-admin";
  *
  * This exists as a server route rather than a direct browser upload for one
  * concrete reason: **the browser Supabase singleton has no session.** Login is a
- * Server Action (`app/[locale]/login/actions.ts`) using the `@supabase/ssr`
+ * Server Action (`lib/auth-actions.ts`) using the `@supabase/ssr`
  * cookie client, so the access token lives in httpOnly cookies. `lib/supabase.ts`
  * is a plain `createClient()` reading localStorage, which is empty — every
  * request it makes is anonymous. The old form called
