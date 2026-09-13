@@ -55,6 +55,7 @@ export function ProductPanel({ product, variants, locale }: ProductPanelProps) {
   const hasSale   = activeVariant.sale_price != null && activeVariant.sale_price < activeVariant.price;
   const savings   = hasSale ? original - price : 0;
   const discountPct = hasSale ? Math.round((savings / original) * 100) : 0;
+  const inStock   = activeVariant.stock_quantity > 0;
 
   // Price for each condition (cheapest variant of that condition)
   function conditionPrice(cond: ProductCondition): number {
@@ -183,8 +184,10 @@ export function ProductPanel({ product, variants, locale }: ProductPanelProps) {
         </div>
       )}
 
-      {/* Price */}
-      <div className="flex flex-wrap items-baseline gap-3">
+      {/* Price + stock status — the status sits right next to the price on both
+          mobile and desktop (same markup, no breakpoint needed: it just wraps
+          onto its own line on narrow screens via flex-wrap). */}
+      <div className="flex flex-wrap items-center gap-3">
         <span className="text-3xl font-extrabold text-ceramic">{formatEGP(price, locale)}</span>
         {hasSale && (
           <>
@@ -194,6 +197,18 @@ export function ProductPanel({ product, variants, locale }: ProductPanelProps) {
             </span>
           </>
         )}
+        <span
+          className={[
+            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold",
+            inStock ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500",
+          ].join(" ")}
+        >
+          <span
+            className={["h-1.5 w-1.5 flex-shrink-0 rounded-full", inStock ? "bg-emerald-500" : "bg-red-500"].join(" ")}
+            aria-hidden
+          />
+          {inStock ? t("inStock") : t("outOfStock")}
+        </span>
       </div>
       {hasSale && (
         <p className="text-sm font-semibold text-[var(--color-mint)]">
@@ -230,7 +245,7 @@ export function ProductPanel({ product, variants, locale }: ProductPanelProps) {
         </div>
         {activeVariant.stock_quantity <= 5 && activeVariant.stock_quantity > 0 && (
           <p className="mt-1.5 text-xs font-semibold text-amber-600">
-            Only {activeVariant.stock_quantity} left in stock
+            {t("lowStock", { count: activeVariant.stock_quantity })}
           </p>
         )}
       </div>
