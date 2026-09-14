@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
@@ -10,6 +10,10 @@ import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { CategoryBar } from "@/components/layout/category-bar";
 import type { CategoryNode } from "@/lib/queries/categories";
 import { useCartStore } from "@/lib/cart-store";
+import { AuthDrawer } from "@/components/auth/auth-drawer";
+import { AccountMenu } from "@/components/auth/account-menu";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 interface NavbarProps {
   locale: string;
@@ -30,7 +34,25 @@ export function Navbar({ locale, categories }: NavbarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const cartCount = useCartStore((s) => s.totalItems());
+
+  // Signed-in state is read client-side only, on purpose: the rest of this
+  // layout tree (app/[locale]/layout.tsx) never touches cookies, which is
+  // what keeps the storefront shell static under `cacheComponents` (see
+  // (admin)/layout.tsx for the one place that DOES need a server-side
+  // session check, and why it's scoped to just /dashboard/*). A Server Action
+  // sign-in/up/out always ends in a redirect(), so by the time this mounts
+  // the cookie the browser client reads here is already current.
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.subscription.unsubscribe();
+  }, []);
 
   const otherLocale = locale === "en" ? "ar" : "en";
   // usePathname() never includes the query string, so switching locale used
@@ -110,25 +132,23 @@ export function Navbar({ locale, categories }: NavbarProps) {
               )}
             </Link>
 
-            {/* Sign in — sits next to the locale pill so it is reachable from every
+            {/* Account — sits next to the locale pill so it is reachable from every
                 page. Styled exactly like the cart control (h-9 w-9 round) so the
                 action row reads as one set rather than a pill plus a stray icon.
-
-                Note for whoever wires customer accounts later: there is no signup
-                route, so today this only lets an existing Supabase user in — in
-                practice, staff. A customer who somehow signs in and is not an admin
-                is redirected to the home page by (admin)/layout.tsx; they are logged
-                in but nothing in the UI says so. That is a gap to close when accounts
-                become a real feature, not a reason to hide the entry point. */}
-            <Link
-              href="/login"
-              locale={locale as "en" | "ar"}
-              aria-label={t("signIn")}
-              title={t("signIn")}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-ceramic transition-colors hover:bg-[var(--color-graphite)]"
-            >
-              <User className="h-[18px] w-[18px]" strokeWidth={2} />
-            </Link>
+                Signed out: opens the AuthDrawer. Signed in: opens the account menu. */}
+            {user ? (
+              <AccountMenu email={user.email ?? ""} locale={locale} />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAuthOpen(true)}
+                aria-label={t("signIn")}
+                title={t("signIn")}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-ceramic transition-colors hover:bg-[var(--color-graphite)]"
+              >
+                <User className="h-[18px] w-[18px]" strokeWidth={2} />
+              </button>
+            )}
 
             {/* Locale pill — ALWAYS visible */}
             <Link
@@ -231,6 +251,13 @@ export function Navbar({ locale, categories }: NavbarProps) {
           </div>
         </SheetContent>
       </Sheet>
+
+      <AuthDrawer
+        locale={locale}
+        open={authOpen}
+        onOpenChange={setAuthOpen}
+        next={pathname}
+      />
     </header>
   );
 }
