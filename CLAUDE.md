@@ -312,3 +312,8 @@ long-standing `is_admin()` WARN.
 Proper fix when it matters: `revoke execute on function create_cod_order(...) from anon,
 authenticated;` and have the API route call it with a `SUPABASE_SERVICE_ROLE_KEY` instead.
 That needs the key added to Vercel env, so it was deliberately not done as a drive-by.
+
+---
+
+## 13. Documentation
+Always use Context7 MCP automatically when working with any library or API in this project (Next.js, React, Supabase, Tailwind, Vercel AI SDK) — don't wait for me to type "use context7" each time.
