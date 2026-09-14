@@ -9,6 +9,12 @@ interface Props {
   next: string;
 }
 
+// Apple isn't enabled in the Supabase dashboard yet (needs a paid Apple
+// Developer account) — showing the button would just hand every customer a
+// 400 error. The handler below still supports "apple"; flip this back to
+// true once the provider is configured there. Do not remove the branch.
+const APPLE_ENABLED = false;
+
 /**
  * "Continue with Google/Apple" — full-page redirect, so this has to run
  * client-side (a Server Action cannot navigate the browser to an external
@@ -51,15 +57,17 @@ export function SocialAuthButtons({ next }: Props) {
         <GoogleIcon className="h-[18px] w-[18px]" />
         {t("continueWithGoogle")}
       </button>
-      <button
-        type="button"
-        disabled={loading !== null}
-        onClick={() => handleOAuth("apple")}
-        className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-[var(--color-iron)] bg-white text-sm font-semibold text-[var(--color-ceramic)] transition-colors hover:bg-[var(--color-graphite)] disabled:opacity-50"
-      >
-        <AppleIcon className="h-[18px] w-[18px]" />
-        {t("continueWithApple")}
-      </button>
+      {APPLE_ENABLED && (
+        <button
+          type="button"
+          disabled={loading !== null}
+          onClick={() => handleOAuth("apple")}
+          className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-[var(--color-iron)] bg-white text-sm font-semibold text-[var(--color-ceramic)] transition-colors hover:bg-[var(--color-graphite)] disabled:opacity-50"
+        >
+          <AppleIcon className="h-[18px] w-[18px]" />
+          {t("continueWithApple")}
+        </button>
+      )}
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
