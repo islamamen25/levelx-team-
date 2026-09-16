@@ -3,6 +3,7 @@
 // admin session, which is not allowed inside a cache scope.
 import { cacheLife, cacheTag } from "next/cache";
 import { createSupabasePublicClient, createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCategoryIdTree, collectCategoryDescendantIds } from "@/lib/queries/categories";
 import type { DbProduct, DbVariant } from "@/lib/supabase";
 
 export type ProductWithVariants = {
@@ -146,16 +147,18 @@ export async function getProductsFiltered(params: {
 
   const supabase = createSupabasePublicClient();
 
-  // If filtering by category slug, resolve it to an id first
-  let categoryId: string | null = null;
+  // If filtering by category slug, resolve it to its id plus every descendant id —
+  // products are tagged at leaf categories, so filtering by a parent's exact id alone
+  // would silently exclude everything in its subtree (see collectCategoryDescendantIds).
+  let categoryIds: string[] | null = null;
   if (categorySlug) {
     const { data: cat } = await supabase
       .from("categories")
       .select("id")
       .eq("slug", categorySlug)
       .maybeSingle();
-    categoryId = cat?.id ?? null;
-    if (!categoryId) return [];
+    if (!cat?.id) return [];
+    categoryIds = collectCategoryDescendantIds(cat.id, await getCategoryIdTree());
   }
 
   let query = supabase
@@ -178,7 +181,7 @@ export async function getProductsFiltered(params: {
     query = query.range((page - 1) * pageSize, page * pageSize - 1);
   }
 
-  if (categoryId) query = query.eq("category_id", categoryId);
+  if (categoryIds) query = query.in("category_id", categoryIds);
   if (brands?.length) query = query.in("brand", brands);
 
   const { data: products, error } = await query;
@@ -246,7 +249,10 @@ export async function getBrandsForCategory(categorySlug?: string): Promise<strin
       .select("id")
       .eq("slug", categorySlug)
       .maybeSingle();
-    if (cat?.id) query = query.eq("category_id", cat.id);
+    if (cat?.id) {
+      const categoryIds = collectCategoryDescendantIds(cat.id, await getCategoryIdTree());
+      query = query.in("category_id", categoryIds);
+    }
   }
 
   const { data } = await query;

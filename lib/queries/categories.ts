@@ -123,6 +123,42 @@ export async function getCategoryBySlug(slug: string, locale: string): Promise<C
   };
 }
 
+export type CategoryIdNode = { id: string; parent_id: string | null };
+
+// شكل مبسّط (id + parent_id فقط) — لبناء أي قسم فرعي بدون الحاجة للاسم المترجم.
+// نفس بيانات getCategoryFlat تقريباً لكن بدون locale، لأن الاستخدام هنا بنيوي فقط.
+export async function getCategoryIdTree(): Promise<CategoryIdNode[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("categories");
+
+  const supabase = createSupabasePublicClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, parent_id")
+    .eq("is_visible", true);
+  if (error) throw new Error(`getCategoryIdTree: ${error.message}`);
+  return (data ?? []) as CategoryIdNode[];
+}
+
+/** `categoryId` plus every id in its subtree, walked via `parent_id`. Products are
+ * tagged at leaf categories (e.g. "Power bank" under "Mobile Accessories"), but every
+ * nav surface — home tiles, top category bar, mobile sidebar, PLP filters — links
+ * root and leaf categories alike. Without this, clicking a parent category queries
+ * only products tagged to that exact id and reads as empty even when its children are
+ * fully stocked. */
+export function collectCategoryDescendantIds(categoryId: string, nodes: CategoryIdNode[]): string[] {
+  const ids = [categoryId];
+  let frontier = [categoryId];
+  while (frontier.length > 0) {
+    const children = nodes.filter((n) => n.parent_id && frontier.includes(n.parent_id)).map((n) => n.id);
+    if (children.length === 0) break;
+    ids.push(...children);
+    frontier = children;
+  }
+  return ids;
+}
+
 // كل الأقسام (بما فيها المخفية) — للـ Admin Dashboard
 export async function getAllCategoriesAdmin(): Promise<CategoryRow[]> {
   // لا cache — المدير يحتاج أحدث نسخة دائماً

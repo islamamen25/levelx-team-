@@ -1,7 +1,13 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getCategoryBySlug, getCategoryFlat, getCategoryTree } from "@/lib/queries/categories";
+import {
+  getCategoryBySlug,
+  getCategoryFlat,
+  getCategoryTree,
+  getCategoryIdTree,
+  collectCategoryDescendantIds,
+} from "@/lib/queries/categories";
 import type { CategoryFlat, CategoryNode } from "@/lib/queries/categories";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 import { cacheLife, cacheTag } from "next/cache";
@@ -42,7 +48,10 @@ type ProductRow = {
   is_active:   boolean;
 };
 
-async function getProductsByCategory(categoryId: string): Promise<ProductRow[]> {
+// categoryIds = the clicked category plus every descendant id (see
+// collectCategoryDescendantIds) — real inventory is tagged at leaf categories, so a
+// parent category page needs its whole subtree, not just an exact id match.
+async function getProductsByCategory(categoryIds: string[]): Promise<ProductRow[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("categories");
@@ -51,7 +60,7 @@ async function getProductsByCategory(categoryId: string): Promise<ProductRow[]> 
   const { data } = await supabase
     .from("products")
     .select("id, name, description, slug, brand, images, is_active")
-    .eq("category_id", categoryId)
+    .in("category_id", categoryIds)
     .eq("is_active", true)
     .not("slug", "is", null)
     .order("name");
@@ -74,15 +83,17 @@ function buildCrumbs(current: CategoryFlat, all: CategoryFlat[]): CategoryFlat[]
 export default async function CategoryPage({ params }: Props) {
   const { locale, slug } = await params;
 
-  const [category, allCategories, tree] = await Promise.all([
+  const [category, allCategories, tree, idTree] = await Promise.all([
     getCategoryBySlug(slug, locale),
     getCategoryFlat(locale),
     getCategoryTree(locale),
+    getCategoryIdTree(),
   ]);
 
   if (!category) notFound();
 
-  const products = await getProductsByCategory(category.id);
+  const categoryIds = collectCategoryDescendantIds(category.id, idTree);
+  const products = await getProductsByCategory(categoryIds);
   const crumbs   = buildCrumbs(category, allCategories);
   const children = (tree.find((n) => n.slug === slug) ??
     tree.flatMap((n) => n.children).find((n) => n.slug === slug))?.children ?? [];
